@@ -151,8 +151,8 @@ export function createPlugin(): { handlers: PluginHandlers; notifications: Plugi
   };
 
   const notifications: PluginNotificationHandlers = {
-    'browser.waiting': (params) => events.waiting(params.message),
-    'browser.progress': (params) => events.progress(params.percent, params.message),
+    'browser.waiting': (params) => events.waiting(params.token, params.message),
+    'browser.progress': (params) => events.progress(params.token, params.percent, params.message),
   };
 
   return { handlers, notifications };

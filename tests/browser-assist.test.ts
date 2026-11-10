@@ -9,16 +9,16 @@ const PAGE = 'https://f95zone.to/dl/1/';
 /** No browser is installed at this path, so the local browser always refuses. */
 const NO_BROWSER = { browserPath: '/no/such/browser', userAgent: 'test' };
 
-type HostAssist = (url: string) => Promise<BrowserAssistResult>;
+type HostAssist = (url: string, token: string) => Promise<BrowserAssistResult>;
 
 /** A host client whose browser.assist calls `assist` and records the page URLs. */
 function fakeHost(assist: HostAssist) {
   const calls: string[] = [];
   const host = {
     browser: {
-      assist: async ({ url }: { url: string }) => {
+      assist: async ({ url, token }: { url: string; token: string }) => {
         calls.push(url);
-        return assist(url);
+        return assist(url, token);
       },
     },
   } as unknown as HostClient;
@@ -51,9 +51,9 @@ describe('createBrowserAssist', () => {
 
   test('passes host waiting and progress notifications to the caller', async () => {
     const events = new BrowserEvents();
-    const { host } = fakeHost(async () => {
-      events.waiting('Press Download File');
-      events.progress(50, 'halfway');
+    const { host } = fakeHost(async (_url, token) => {
+      events.waiting(token, 'Press Download File');
+      events.progress(token, 50, 'halfway');
       return { capturedUrl: 'https://pixeldrain.com/u/abc' };
     });
     const { services } = fakeServices();
@@ -67,6 +67,34 @@ describe('createBrowserAssist', () => {
     });
     expect(waiting).toEqual(['Press Download File']);
     expect(progress).toEqual([[50, 'halfway']]);
+  });
+
+  test('gives each capture its own token and routes events by it', async () => {
+    const events = new BrowserEvents();
+    const tokens: string[] = [];
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const { host } = fakeHost(async (url, token) => {
+      tokens.push(token);
+      await gate;
+      events.waiting(token, `waiting for ${url}`);
+      return { capturedUrl: 'https://pixeldrain.com/u/abc' };
+    });
+    const { services } = fakeServices();
+    const assist = createBrowserAssist({ hostGranted: true, host, events, services, settings: NO_BROWSER });
+
+    const firstWaiting: string[] = [];
+    const secondWaiting: string[] = [];
+    const first = assist.capture(PAGE, { onWaiting: (message) => firstWaiting.push(message) });
+    const second = assist.capture(`${PAGE}other/`, { onWaiting: (message) => secondWaiting.push(message) });
+    release();
+    await Promise.all([first, second]);
+
+    expect(tokens[0]).not.toBe(tokens[1]);
+    expect(firstWaiting).toEqual([`waiting for ${PAGE}`]);
+    expect(secondWaiting).toEqual([`waiting for ${PAGE}other/`]);
   });
 
   test('falls back to the local browser once when the host has no browser.assist', async () => {

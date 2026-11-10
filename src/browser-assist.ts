@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type { HostClient } from '@light-launcher/plugin-sdk/runtime';
 import { ErrorCode, RpcFailure } from '@light-launcher/plugin-sdk/types';
 import { browserAssistAvailable, captureF95Download, closeBrowserAssist } from './downloads/browser/assist';
@@ -33,27 +34,23 @@ const HOST_TIMEOUT_MS = 600_000;
 
 type BrowserListener = Pick<BrowserCaptureOptions, 'onWaiting' | 'onProgress'>;
 
-/**
- * The host sends browser.waiting and browser.progress with a token: the browser.assist
- * request id. The plugin cannot read its own request ids, so every open capture
- * receives every notification.
- */
+/** Routes the host's browser.waiting and browser.progress to the capture that sent the token. */
 export class BrowserEvents {
-  private readonly listeners = new Set<BrowserListener>();
+  private readonly listeners = new Map<string, BrowserListener>();
 
-  subscribe(listener: BrowserListener): () => void {
-    this.listeners.add(listener);
+  subscribe(token: string, listener: BrowserListener): () => void {
+    this.listeners.set(token, listener);
     return () => {
-      this.listeners.delete(listener);
+      this.listeners.delete(token);
     };
   }
 
-  waiting(message: string): void {
-    for (const listener of this.listeners) listener.onWaiting?.(message);
+  waiting(token: string, message: string): void {
+    this.listeners.get(token)?.onWaiting?.(message);
   }
 
-  progress(percent: number, message?: string): void {
-    for (const listener of this.listeners) listener.onProgress?.(percent, message);
+  progress(token: string, percent: number, message?: string): void {
+    this.listeners.get(token)?.onProgress?.(percent, message);
   }
 }
 
@@ -65,10 +62,11 @@ class HostBrowserAssist implements BrowserAssist {
   ) {}
 
   async capture(url: string, options: BrowserCaptureOptions = {}): Promise<BrowserCapture> {
-    const unsubscribe = this.events.subscribe(options);
+    const token = randomUUID();
+    const unsubscribe = this.events.subscribe(token, options);
     try {
       const result = await this.host.browser.assist(
-        { url, timeoutMs: HOST_TIMEOUT_MS },
+        { url, timeoutMs: HOST_TIMEOUT_MS, token },
         { signal: options.signal },
       );
       return { capturedUrl: result.capturedUrl, filename: result.filename, size: result.size };
