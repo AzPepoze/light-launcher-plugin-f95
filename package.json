@@ -2,6 +2,7 @@
   "name": "light-launcher-plugin-f95",
   "version": "1.0.0",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "description": "F95 Zone source plugin for Light Launcher.",
   "scripts": {
