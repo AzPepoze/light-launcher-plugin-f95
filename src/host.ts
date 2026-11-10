@@ -1,4 +1,5 @@
 import type { HttpClient } from './vendor/http';
+import type { BrowserAssist } from './browser-assist';
 
 /** One row of the forum's public thread sitemap. */
 export interface SitemapRow {
@@ -10,13 +11,14 @@ export interface SitemapRow {
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 export type LogFn = (level: LogLevel, message: string, extra?: unknown) => void;
 
-/** Per-source login cookie. The host owns the secret; the plugin only reads and replaces it. */
+/** Per-source login cookie. The host stores the secret; the plugin reads and replaces it. */
 export interface CredentialStore {
   get(): Promise<string | null>;
+  /** null removes the cookie */
   set(value: string | null): Promise<void>;
 }
 
-/** A directory the plugin may write to for its own data (browser profile, sitemap cache). */
+/** A directory the plugin may write to for its own data (sitemap cache, profile overlay). */
 export interface PluginStorage {
   dataDir: string;
 }
@@ -32,9 +34,13 @@ export interface SitemapCache {
 export interface HostServices {
   http: HttpClient;
   credential: CredentialStore;
+  browser: BrowserAssist;
   /** save a raw page when a parse fails; a no-op when dumps are off */
   dump: (name: string, body: string) => void;
   log: LogFn;
   storage: PluginStorage;
   sitemapCache: SitemapCache;
 }
+
+/** The services the local browser needs. It cannot use `browser`, which is built from it. */
+export type CaptureServices = Pick<HostServices, 'credential' | 'log' | 'storage'>;

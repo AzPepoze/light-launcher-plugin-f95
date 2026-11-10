@@ -1,5 +1,6 @@
 import os from 'node:os';
 import path from 'node:path';
+import type { BrowserAssist, BrowserCapture } from '../src/browser-assist';
 import type { HostServices, SitemapRow } from '../src/host';
 import type { HttpResult, RequestOptions } from '../src/vendor/http';
 
@@ -14,12 +15,16 @@ export interface FakeServicesOptions {
   /** answers each GET; the default is an empty 200 response */
   respond?: Responder;
   credential?: string | null;
+  /** answers each browser capture; the default captures nothing */
+  capture?: (url: string) => BrowserCapture;
 }
 
 export interface FakeServices {
   services: HostServices;
   calls: FakeHttpCall[];
   logs: string[];
+  /** the URLs sent to browser assist */
+  browserCalls: string[];
   /** the credential the plugin last stored, or the initial one */
   credential: () => string | null;
 }
@@ -45,7 +50,17 @@ export function fakeServices(options: FakeServicesOptions = {}): FakeServices {
     },
   };
 
+  const browserCalls: string[] = [];
+  const browser: BrowserAssist = {
+    capture: async (url) => {
+      browserCalls.push(url);
+      return options.capture?.(url) ?? { capturedUrl: null };
+    },
+    close: async () => {},
+  };
+
   const services: HostServices = {
+    browser,
     http: http as unknown as HostServices['http'],
     credential: {
       get: async () => credential,
@@ -67,5 +82,5 @@ export function fakeServices(options: FakeServicesOptions = {}): FakeServices {
     },
   };
 
-  return { services, calls, logs, credential: () => credential };
+  return { services, calls, logs, browserCalls, credential: () => credential };
 }

@@ -1,0 +1,167 @@
+import type { HostClient } from '@light-launcher/plugin-sdk/runtime';
+import { ErrorCode, RpcFailure } from '@light-launcher/plugin-sdk/types';
+import { browserAssistAvailable, captureF95Download, closeBrowserAssist } from './downloads/browser/assist';
+import type { CaptureServices, LogFn } from './host';
+
+export interface BrowserCapture {
+  capturedUrl: string | null;
+  filename?: string | null;
+  size?: number | null;
+  /** cookies the download needs; only the local browser returns them */
+  headers?: Record<string, string>;
+}
+
+export interface BrowserCaptureOptions {
+  signal?: AbortSignal;
+  onWaiting?: (message: string) => void;
+  onProgress?: (percent: number, message?: string) => void;
+}
+
+/** Opens a browser at a page and captures the download link it produces. */
+export interface BrowserAssist {
+  capture(url: string, options?: BrowserCaptureOptions): Promise<BrowserCapture>;
+  close(): Promise<void>;
+}
+
+export interface LocalBrowserSettings {
+  /** explicit browser executable; null uses the usual install locations */
+  browserPath: string | null;
+  userAgent: string;
+}
+
+const HOST_TIMEOUT_MS = 600_000;
+
+type BrowserListener = Pick<BrowserCaptureOptions, 'onWaiting' | 'onProgress'>;
+
+/**
+ * The host sends browser.waiting and browser.progress with a token: the browser.assist
+ * request id. The plugin cannot read its own request ids, so every open capture
+ * receives every notification.
+ */
+export class BrowserEvents {
+  private readonly listeners = new Set<BrowserListener>();
+
+  subscribe(listener: BrowserListener): () => void {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+
+  waiting(message: string): void {
+    for (const listener of this.listeners) listener.onWaiting?.(message);
+  }
+
+  progress(percent: number, message?: string): void {
+    for (const listener of this.listeners) listener.onProgress?.(percent, message);
+  }
+}
+
+/** Uses the host's browser.assist. The host opens the browser and returns the link. */
+class HostBrowserAssist implements BrowserAssist {
+  constructor(
+    private readonly host: HostClient,
+    private readonly events: BrowserEvents,
+  ) {}
+
+  async capture(url: string, options: BrowserCaptureOptions = {}): Promise<BrowserCapture> {
+    const unsubscribe = this.events.subscribe(options);
+    try {
+      const result = await this.host.browser.assist(
+        { url, timeoutMs: HOST_TIMEOUT_MS },
+        { signal: options.signal },
+      );
+      return { capturedUrl: result.capturedUrl, filename: result.filename, size: result.size };
+    } finally {
+      unsubscribe();
+    }
+  }
+
+  async close(): Promise<void> {}
+}
+
+/** Drives Chrome, Edge or Chromium over CDP. Used when the host does not provide browser.assist. */
+class LocalBrowserAssist implements BrowserAssist {
+  constructor(
+    private readonly services: CaptureServices,
+    private readonly settings: LocalBrowserSettings,
+  ) {}
+
+  capture(url: string, options: BrowserCaptureOptions = {}): Promise<BrowserCapture> {
+    if (!browserAssistAvailable(this.settings.browserPath)) {
+      return Promise.reject(new Error('browser assist needs Google Chrome, Microsoft Edge or Chromium installed'));
+    }
+    return new Promise((resolve, reject) => {
+      const stop = new AbortController();
+      const cancel = () => stop.abort();
+      options.signal?.addEventListener('abort', cancel, { once: true });
+      captureF95Download(this.services, url, {
+        browserPath: this.settings.browserPath,
+        userAgent: this.settings.userAgent,
+        signal: stop.signal,
+        onWaiting: options.onWaiting,
+        onCandidate: (candidate) => {
+          resolve({ capturedUrl: candidate.url, filename: candidate.filename, headers: candidate.headers });
+          stop.abort();
+        },
+      })
+        .catch(reject)
+        .finally(() => options.signal?.removeEventListener('abort', cancel));
+    });
+  }
+
+  close(): Promise<void> {
+    return closeBrowserAssist();
+  }
+}
+
+function isMethodNotFound(err: unknown): boolean {
+  return err instanceof RpcFailure && err.code === ErrorCode.MethodNotFound;
+}
+
+/**
+ * Prefers the host's browser.assist. If the host answers "method not found", the plugin
+ * switches to the local browser for the rest of the run.
+ */
+class PreferredBrowserAssist implements BrowserAssist {
+  private hostLacksAssist = false;
+
+  constructor(
+    private readonly host: BrowserAssist,
+    private readonly local: BrowserAssist,
+    private readonly log: LogFn,
+  ) {}
+
+  async capture(url: string, options?: BrowserCaptureOptions): Promise<BrowserCapture> {
+    if (!this.hostLacksAssist) {
+      try {
+        return await this.host.capture(url, options);
+      } catch (err) {
+        if (!isMethodNotFound(err)) throw err;
+        this.hostLacksAssist = true;
+        this.log('warn', 'the host has no browser.assist, using the local browser');
+      }
+    }
+    return this.local.capture(url, options);
+  }
+
+  close(): Promise<void> {
+    return this.local.close();
+  }
+}
+
+export interface BrowserAssistInput {
+  /** grantedPermissions.browser from initialize */
+  hostGranted: boolean;
+  host: HostClient;
+  events: BrowserEvents;
+  services: CaptureServices;
+  settings: LocalBrowserSettings;
+}
+
+/** Host browser.assist when the host granted the browser permission, otherwise the local browser. */
+export function createBrowserAssist(input: BrowserAssistInput): BrowserAssist {
+  const local = new LocalBrowserAssist(input.services, input.settings);
+  if (!input.hostGranted) return local;
+  return new PreferredBrowserAssist(new HostBrowserAssist(input.host, input.events), local, input.services.log);
+}

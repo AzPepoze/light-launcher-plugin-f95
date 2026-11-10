@@ -1,13 +1,13 @@
 import { createHash } from 'node:crypto';
 import type {
-  AuthState, FileCandidate, GameDTO, GameRef, Provider, ProviderCapabilities,
-  Ref, UpdateInfo,
-} from '../../vendor/types';
-import { isNewer } from '../../vendor/version';
+  AuthState, FileCandidate, GameDTO, GameRef, ProviderCapabilities, Ref, UpdateInfo,
+} from '@light-launcher/plugin-sdk/types';
+import { isNewer } from '@light-launcher/plugin-sdk/helpers';
 import type { HostServices } from '../../host';
+import type { DownloadCall, DownloadTarget, Provider } from '../../provider';
 import type { XenForoProfile } from './profile';
 import {
-  extractFileCandidates, parseAccountName, parseListing, parseThread, parseThreadMeta,
+  extractFileCandidates, isDownloadRedirect, parseAccountName, parseListing, parseThread, parseThreadMeta,
 } from './parse';
 
 export * from './profile';
@@ -18,8 +18,6 @@ export interface XenForoProviderOptions {
   id?: string;
   /** defaults to the profile label */
   label?: string;
-  /** cookie header saved for this source, or null when not signed in */
-  credential?: string | null;
   userAgent?: string;
 }
 
@@ -81,14 +79,25 @@ export function createXenForoProvider(
   const label = options.label ?? profile.label;
   const base = profile.baseUrl.replace(/\/+$/, '');
   const loginPath = profile.auth.loginPath.replace(/\/+$/, '') || '/login';
-  let credential = options.credential?.trim() ? normalizeCookie(options.credential) : null;
 
-  const cookies = (): Record<string, string> => (credential ? { Cookie: credential } : {});
+  /** The saved cookie, normalized, or null when not signed in. */
+  async function savedCookie(): Promise<string | null> {
+    const stored = await services.credential.get();
+    return stored?.trim() ? normalizeCookie(stored) : null;
+  }
+
+  async function cookieHeaders(): Promise<Record<string, string>> {
+    const cookie = await savedCookie();
+    return cookie ? { Cookie: cookie } : {};
+  }
+
   // parsed results depend on the login: a guest parse must not answer for a logged-in user
-  const memoryId = (sourceId: string): string => {
-    const login = credential ? createHash('sha256').update(credential).digest('hex').slice(0, 12) : 'guest';
-    return `${sourceId}@${login}`;
-  };
+  async function memoryId(id: string): Promise<string> {
+    const cookie = await savedCookie();
+    const login = cookie ? createHash('sha256').update(cookie).digest('hex').slice(0, 12) : 'guest';
+    return `${id}@${login}`;
+  }
+
   const urlFor = (pathOrUrl: string): string => new URL(pathOrUrl, `${base}/`).toString();
 
   async function inspectAccount(cookie: string): Promise<AuthState> {
@@ -119,8 +128,23 @@ export function createXenForoProvider(
   }
 
   async function authStatus(): Promise<AuthState> {
-    if (!credential) return { status: 'unconfigured', checkedAt: now() };
-    return inspectAccount(credential);
+    const cookie = await savedCookie();
+    if (!cookie) return { status: 'unconfigured', checkedAt: now() };
+    return inspectAccount(cookie);
+  }
+
+  /** Validates the cookie, then saves it through the host's secret store. */
+  async function setCredential(value: string): Promise<AuthState> {
+    const normalized = normalizeCookie(value);
+    if (!normalized) return { status: 'unconfigured', checkedAt: now() };
+    const state = await inspectAccount(normalized);
+    if (state.status === 'ok') await services.credential.set(normalized);
+    return state;
+  }
+
+  async function clearCredential(): Promise<AuthState> {
+    await services.credential.set(null);
+    return { status: 'unconfigured', checkedAt: now() };
   }
 
   function parseRef(url: string): Ref | null {
@@ -146,18 +170,18 @@ export function createXenForoProvider(
   }
 
   async function fetchGame(ref: Ref): Promise<GameDTO> {
-    const key = memoryId(ref.id);
-    let res = await services.http.get(ref.url, { cacheKey: ref.url, headers: cookies() });
+    const key = await memoryId(ref.id);
+    let res = await services.http.get(ref.url, { cacheKey: ref.url, headers: await cookieHeaders() });
     if (res.notModified) {
       const fresh = dtoCache.get(key);
       if (fresh && Date.now() - fresh.at < DTO_TTL_MS) return fresh.dto;
       // no parsed copy was retained, so ask for the body without validators
-      res = await services.http.get(ref.url, { headers: cookies() });
+      res = await services.http.get(ref.url, { headers: await cookieHeaders() });
     }
     if (res.status >= 400) throw new Error(`${sourceId}: HTTP ${res.status} for ${ref.url}`);
     const dto = parseThread(res.text, profile, ref.url);
     // reuse this parse for the following resolveFiles() call
-    remember(memoryId(dto.sourceId), dto.updatedAt ?? null, extractFileCandidates(res.text, profile, dto.url));
+    remember(await memoryId(dto.sourceId), dto.updatedAt ?? null, extractFileCandidates(res.text, profile, dto.url));
     dtoCache.set(key, { dto, at: Date.now() });
     while (dtoCache.size > MAX_CACHE) {
       const oldest = dtoCache.keys().next().value;
@@ -170,41 +194,57 @@ export function createXenForoProvider(
   async function fetchList(opts: { url?: string; query?: string; page?: number }): Promise<GameDTO[]> {
     const target = new URL(opts.url ?? `${base}${profile.listing.path}`, `${base}/`);
     if (opts.page && opts.page > 1) target.searchParams.set(profile.listing.pageParam, String(opts.page));
-    const res = await services.http.get(target.toString(), { headers: cookies() });
+    const res = await services.http.get(target.toString(), { headers: await cookieHeaders() });
     if (res.notModified || res.status >= 400) return [];
     return parseListing(res.text, profile, target.toString());
   }
 
   async function threadHtml(game: GameRef): Promise<string> {
-    let res = await services.http.get(game.url, { cacheKey: game.url, headers: cookies() });
+    let res = await services.http.get(game.url, { cacheKey: game.url, headers: await cookieHeaders() });
     if (res.notModified) {
       // the http cache only stores validators, so revalidate without a cache key
-      res = await services.http.get(game.url, { headers: cookies() });
+      res = await services.http.get(game.url, { headers: await cookieHeaders() });
     }
     if (res.status >= 400) throw new Error(`${sourceId}: ${refusedMessage(res.status, game.url)}`);
     return res.text;
   }
 
   async function resolveFiles(game: GameRef): Promise<FileCandidate[]> {
-    const cached = parsedCache.get(cacheKey(memoryId(game.sourceId), game.updatedAt)) ?? null;
+    const id = await memoryId(game.sourceId);
+    const cached = parsedCache.get(cacheKey(id, game.updatedAt ?? null)) ?? null;
     if (cached) return cached;
     const html = await threadHtml(game);
     const meta = parseThreadMeta(html, profile);
     const files = extractFileCandidates(html, profile, game.url);
-    remember(memoryId(game.sourceId), meta.editedAt, files);
-    if (meta.editedAt !== game.updatedAt) remember(memoryId(game.sourceId), game.updatedAt, files);
+    remember(id, meta.editedAt, files);
+    if (meta.editedAt !== game.updatedAt) remember(id, game.updatedAt ?? null, files);
     return files;
   }
 
-  async function prepareDownload(file: FileCandidate, game: GameRef): Promise<{ url: string; headers: Record<string, string> }> {
+  /** A forum /dl/ link leads to a file host through a page that needs a real browser. */
+  async function captureRedirect(file: FileCandidate, call: DownloadCall): Promise<DownloadTarget> {
+    const captured = await services.browser.capture(file.url, {
+      signal: call.signal,
+      onWaiting: (message) => call.progress?.({ message }),
+      onProgress: (percent, message) => call.progress?.({ done: percent, total: 100, message }),
+    });
+    if (!captured.capturedUrl) {
+      throw new Error(`${label}: no download link was captured. Press Download File in the browser window and try again.`);
+    }
+    return { url: captured.capturedUrl, headers: captured.headers ?? {} };
+  }
+
+  async function prepareDownload(file: FileCandidate, game: GameRef, call: DownloadCall = {}): Promise<DownloadTarget> {
+    if (isDownloadRedirect(file.url)) return captureRedirect(file, call);
     if (file.requiresAuth) {
-      if (!credential) {
+      const cookie = await savedCookie();
+      if (!cookie) {
         throw new Error(`${label}: this download requires a stored session cookie (set the source cookie in settings)`);
       }
       return {
         url: file.url,
         headers: {
-          Cookie: credential,
+          Cookie: cookie,
           Referer: game.url,
           ...(options.userAgent ? { 'User-Agent': options.userAgent } : {}),
         },
@@ -214,15 +254,15 @@ export function createXenForoProvider(
   }
 
   async function checkUpdate(game: GameRef): Promise<UpdateInfo | null> {
-    const res = await services.http.get(game.url, { cacheKey: game.url, headers: cookies() });
+    const res = await services.http.get(game.url, { cacheKey: game.url, headers: await cookieHeaders() });
     if (res.notModified) return null;
     if (res.status >= 400) throw new Error(`${sourceId}: ${refusedMessage(res.status, game.url)}`);
     const fresh = parseThread(res.text, profile, game.url);
     const meta = parseThreadMeta(res.text, profile);
     const versionNewer = isNewer(fresh.version ?? null, game.version);
-    const editedLater = dateAfter(meta.editedAt, game.updatedAt);
+    const editedLater = dateAfter(meta.editedAt, game.updatedAt ?? null);
     // reuse this fetch for a following resolveFiles() call
-    remember(memoryId(game.sourceId), meta.editedAt, extractFileCandidates(res.text, profile, game.url));
+    remember(await memoryId(game.sourceId), meta.editedAt, extractFileCandidates(res.text, profile, game.url));
     if (!versionNewer && !editedLater) return null;
     return { version: fresh.version ?? null, updatedAt: meta.editedAt, changelog: fresh.changelog ?? null };
   }
@@ -241,21 +281,8 @@ export function createXenForoProvider(
     capabilities,
     parseRef,
     authStatus,
-    // Validates the cookie, then saves it through the host's credential store.
-    async setCredential(value: string): Promise<AuthState> {
-      const normalized = normalizeCookie(value);
-      if (!normalized) return { status: 'unconfigured', checkedAt: now() };
-      const state = await inspectAccount(normalized);
-      if (state.status === 'ok') {
-        credential = normalized;
-        await services.credential.set(normalized);
-      }
-      return state;
-    },
-    async clearCredential(): Promise<void> {
-      credential = null;
-      await services.credential.set(null);
-    },
+    setCredential,
+    clearCredential,
     fetchGame,
     fetchList,
     resolveFiles,

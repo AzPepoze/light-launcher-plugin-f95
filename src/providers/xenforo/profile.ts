@@ -1,6 +1,5 @@
 import fs from 'node:fs';
-import { load, txt, type Doc, type El } from '../../vendor/html';
-import type { HostMap } from '../../vendor/links';
+import { load, txt, type Doc, type El, type HostMap } from '@light-launcher/plugin-sdk/helpers';
 
 /** Everything the generic XenForo engine needs to know about one forum. */
 export interface XenForoProfile {
@@ -41,8 +40,6 @@ export interface XenForoProfile {
   };
   rateLimitMs: number;
 }
-
-const cache = new Map<string, { mtimeMs: number; profile: XenForoProfile }>();
 
 // ---------------------------------------------------------------------------
 // selector/url helpers shared by the generic parser (profile-driven, no I/O)
@@ -113,10 +110,6 @@ export function isoDateTime(value: string | null): string | null {
 }
 
 
-function overlayPath(file: string): string {
-  return file.replace(/\.json$/i, '.local.json');
-}
-
 function readJson(file: string): unknown {
   try {
     return JSON.parse(fs.readFileSync(file, 'utf8')) as unknown;
@@ -172,21 +165,12 @@ export function parseProfile(raw: unknown, file: string): XenForoProfile {
   return raw as unknown as XenForoProfile;
 }
 
-/** Loads a profile JSON file, deep-merged with `<name>.local.json` next to it when present; cached by mtime. */
-export function loadProfileFile(file: string): XenForoProfile {
-  if (!fs.existsSync(file)) throw new Error(`xenforo profile not found: ${file}`);
-  const local = overlayPath(file);
-  const hasLocal = fs.existsSync(local);
-  const mtimeMs = Math.max(
-    fs.statSync(file).mtimeMs,
-    hasLocal ? fs.statSync(local).mtimeMs : 0,
-  );
-  const hit = cache.get(file);
-  if (hit && hit.mtimeMs === mtimeMs) return hit.profile;
-
-  const base = readJson(file);
-  const merged = hasLocal ? deepMerge(base, readJson(local)) : base;
-  const profile = parseProfile(merged, file);
-  cache.set(file, { mtimeMs, profile });
-  return profile;
+/**
+ * The embedded profile, with the overlay file merged over it when the file exists.
+ * Selector fixes go in the overlay, so they need no rebuild.
+ */
+export function loadProfile(embedded: unknown, overlayFile: string): XenForoProfile {
+  if (!fs.existsSync(overlayFile)) return parseProfile(embedded, 'embedded profile');
+  const merged = deepMerge(embedded, readJson(overlayFile));
+  return parseProfile(merged, overlayFile);
 }

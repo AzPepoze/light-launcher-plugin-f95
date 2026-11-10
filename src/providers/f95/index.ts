@@ -1,10 +1,9 @@
 import type { HostServices } from '../../host';
-import type { Provider } from '../../vendor/types';
+import type { Provider } from '../../provider';
 import { createXenForoProvider, type XenForoProfile } from '../xenforo';
 
 export interface F95ProviderOptions {
   profile: XenForoProfile;
-  credential?: string | null;
   userAgent?: string;
 }
 
@@ -16,7 +15,6 @@ export function createF95Provider(services: HostServices, options: F95ProviderOp
   return createXenForoProvider(options.profile, services, {
     id: 'f95',
     label: 'F95 Zone',
-    credential: options.credential,
     userAgent: options.userAgent,
   });
 }

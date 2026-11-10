@@ -1,6 +1,8 @@
-import type { FileCandidate, FileKind, GameDTO, GameStatus, Platform } from '../../vendor/types';
-import { absUrl, attr, cleanHtml, load, parseSize, txt, usableImage, type Doc, type El } from '../../vendor/html';
-import { classifyLink, platformOf, platformsIn } from '../../vendor/links';
+import type { FileCandidate, FileKind, GameDTO, GameStatus, Platform } from '@light-launcher/plugin-sdk/types';
+import {
+  absUrl, attr, classifyLink, cleanHtml, load, parseSize, platformOf, platformsIn, txt, usableImage,
+  type Doc, type El,
+} from '@light-launcher/plugin-sdk/helpers';
 import {
   canonicalThreadUrl, hashId, htmlToLines, isoDateTime, profileBody, profileBodySelector,
   selectFirst, selectorList, threadIdFromUrl, type XenForoProfile,
@@ -293,6 +295,11 @@ function localPlatform(): Platform {
 function combinedPlatform(platforms: Platform[]): Platform | null {
   const here = localPlatform();
   return platforms.includes(here) ? here : null;
+}
+
+/** A forum /dl/ link: the browser must follow it, because it leads to a file host. */
+export function isDownloadRedirect(url: string): boolean {
+  return DOWNLOAD_REDIRECT.test(url);
 }
 
 interface CandidateInfo {

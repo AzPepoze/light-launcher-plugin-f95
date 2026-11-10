@@ -13,7 +13,7 @@
       {
         "id": "f95",
         "label": "F95 Zone",
-        "capabilities": ["browse", "auth", "updateCheck", "resolveFiles"]
+        "capabilities": ["browse", "auth", "updateCheck", "resolveFiles", "sync:index"]
       }
     ]
   },

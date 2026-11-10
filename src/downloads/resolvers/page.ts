@@ -1,4 +1,4 @@
-import { load } from '../../vendor/html';
+import { load } from '@light-launcher/plugin-sdk/helpers';
 import { DEFAULT_UA } from '../../vendor/http';
 import { hostOf } from '../hosts';
 

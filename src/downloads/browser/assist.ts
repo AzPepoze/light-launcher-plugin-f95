@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import type { HostServices } from '../../host';
+import type { CaptureServices } from '../../host';
 import { DEFAULT_UA } from '../../vendor/http';
 import { filenameFromDisposition } from '../hosts';
 import { CdpClient } from './cdp';
@@ -22,7 +22,7 @@ interface BrowserSession {
   proc: ReturnType<typeof Bun.spawn>;
   cdp: CdpClient;
   idle: ReturnType<typeof setTimeout> | null;
-  services: HostServices;
+  services: CaptureServices;
 }
 
 let session: BrowserSession | null = null;
@@ -150,7 +150,7 @@ function pidLooksLikeBrowser(pid: number, profile: string): boolean {
   return false;
 }
 
-function stopStaleBrowser(services: HostServices, dataDir: string, profile: string): void {
+function stopStaleBrowser(services: CaptureServices, dataDir: string, profile: string): void {
   const pidFile = path.join(dataDir, 'browser.pid');
   try {
     const pid = Number(fs.readFileSync(pidFile, 'utf8').trim());
@@ -169,7 +169,7 @@ function stopStaleBrowser(services: HostServices, dataDir: string, profile: stri
   }
 }
 
-async function launch(services: HostServices, browserPath: string | null | undefined): Promise<BrowserSession> {
+async function launch(services: CaptureServices, browserPath: string | null | undefined): Promise<BrowserSession> {
   const executable = findBrowser(browserPath);
   if (!executable) {
     throw new Error('browser assist needs Google Chrome, Microsoft Edge or Chromium installed');
@@ -256,7 +256,7 @@ async function disposeSession(current: BrowserSession | null): Promise<void> {
   current.services.log('info', 'browser assist window closed');
 }
 
-async function getSession(services: HostServices, epoch: number, browserPath: string | null | undefined): Promise<BrowserSession> {
+async function getSession(services: CaptureServices, epoch: number, browserPath: string | null | undefined): Promise<BrowserSession> {
   if (session?.cdp.isOpen) {
     scheduleIdle(session);
     return session;
@@ -285,7 +285,7 @@ export async function closeBrowserAssist(): Promise<void> {
 }
 
 async function capture(
-  services: HostServices,
+  services: CaptureServices,
   sourceUrl: string,
   epoch: number,
   options: CaptureOptions,
@@ -501,7 +501,7 @@ async function capture(
  * stream every distinct download link to `onCandidate` until the caller aborts.
  */
 export function captureF95Download(
-  services: HostServices,
+  services: CaptureServices,
   sourceUrl: string,
   options: CaptureOptions = {},
 ): Promise<void> {

@@ -1,20 +1,14 @@
+import type { SyncStatus } from '@light-launcher/plugin-sdk/types';
+import { titleFromSlug } from '@light-launcher/plugin-sdk/helpers';
 import type { HostServices, SitemapRow } from '../host';
-import { titleFromSlug } from '../vendor/title-match';
 
 const BASE = 'https://f95zone.to';
 
 let running = false;
 
-export interface ThreadIndexStatus {
-  source: string;
-  count: number;
-  syncedAt: string | null;
-  running: boolean;
-}
-
-export function indexStatus(services: HostServices, source = 'f95'): ThreadIndexStatus {
+/** The sync:index answer: the index itself stays in the data directory. */
+export function indexStatus(services: HostServices, source = 'f95'): SyncStatus {
   return {
-    source,
     count: services.sitemapCache.count(source),
     syncedAt: services.sitemapCache.syncedAt(source),
     running,
@@ -45,8 +39,8 @@ export async function syncThreadIndex(
   services: HostServices,
   source = 'f95',
   onProgress: (message: string) => void = () => {},
-): Promise<{ count: number }> {
-  if (running) return { count: services.sitemapCache.count(source) };
+): Promise<void> {
+  if (running) return;
   running = true;
   onProgress('Indexing F95 threads…');
   try {
@@ -64,7 +58,6 @@ export async function syncThreadIndex(
 
     services.sitemapCache.replace(source, rows);
     services.log('info', `indexed ${rows.length} threads`);
-    return { count: rows.length };
   } finally {
     running = false;
   }

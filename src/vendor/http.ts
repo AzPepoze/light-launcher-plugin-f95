@@ -1,4 +1,4 @@
-// vendored until the SDK is published; replace with @light-launcher/plugin-sdk
+// Kept local: the SDK http helper goes through host http.request and has no rate limit, ETag cache or cookie header.
 
 /** Validators kept for conditional GET requests. */
 export interface CacheEntry {

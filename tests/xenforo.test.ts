@@ -1,13 +1,13 @@
 import { describe, expect, test } from 'bun:test';
 import fs from 'node:fs';
-import type { GameRef } from '../src/vendor/types';
-import { platformOf, platformsIn } from '../src/vendor/links';
-import { isNewer } from '../src/vendor/version';
+import type { GameRef } from '@light-launcher/plugin-sdk/types';
+import { isNewer, platformOf, platformsIn } from '@light-launcher/plugin-sdk/helpers';
 import {
-  extractFileCandidates, loadProfileFile, parseAccountName, parseListing,
-  parseThread, parseThreadMeta, parseVersion,
+  extractFileCandidates, parseAccountName, parseListing,
+  parseProfile, parseThread, parseThreadMeta, parseVersion,
 } from '../src/providers/xenforo';
 import { createF95Provider } from '../src/providers/f95';
+import profileJson from '../profiles/f95zone.json';
 import { fakeServices, type Responder } from './fakes';
 
 const fixture = (name: string): string =>
@@ -16,19 +16,17 @@ const fixture = (name: string): string =>
 const threadHtml = fixture('f95-thread.html');
 const listingHtml = fixture('f95-listing.html');
 const accountHtml = fixture('f95-account.html');
-const profileFile = new URL('../profiles/f95zone.json', import.meta.url).pathname;
-const profile = loadProfileFile(profileFile);
+const profile = parseProfile(profileJson, 'profiles/f95zone.json');
 const threadUrl = 'https://f95zone.to/threads/my-game.12345/';
 
 function makeProvider(respond: Responder, credential: string | null = null) {
   const fake = fakeServices({ respond, credential });
-  const provider = createF95Provider(fake.services, { profile, credential });
+  const provider = createF95Provider(fake.services, { profile });
   return { calls: fake.calls, provider, fake };
 }
 
 function gameRef(over: Partial<GameRef> = {}): GameRef {
   return {
-    id: 1,
     source: 'f95',
     sourceId: '12345',
     url: 'https://f95zone.to/threads/12345/',
@@ -47,10 +45,6 @@ describe('xenforo profile', () => {
     expect(profile.baseUrl).toBe('https://f95zone.to');
     expect(profile.listing.pageParam).toBe('page');
     expect(profile.rateLimitMs).toBe(1200);
-  });
-
-  test('reports a missing profile file', () => {
-    expect(() => loadProfileFile('/no/such/profile.json')).toThrow('xenforo profile not found');
   });
 });
 
