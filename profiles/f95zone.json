@@ -1,0 +1,75 @@
+{
+  "id": "f95",
+  "label": "F95 Zone",
+  "baseUrl": "https://f95zone.to",
+  "engine": "xenforo",
+  "profileVersion": 1,
+  "auth": {
+    "checkPath": "/account",
+    "loginPath": "/login",
+    "userSelector": [
+      ".p-navgroup--member .p-navgroup-link--user .p-navgroup-linkText",
+      ".p-navgroup--member .p-navgroup-link--user",
+      "span.p-account"
+    ]
+  },
+  "threadUrl": "^https?://(?:www\\.)?f95zone\\.to/threads/[^/]*\\.(\\d+)(?:/|$)",
+  "selectors": {
+    "title": [".p-title-value"],
+    "titlePrefix": [".p-title-value .label"],
+    "firstPost": ["article.message"],
+    "postBody": [".message-body .bbWrapper"],
+    "postAuthor": [".message-attribution-main .username"],
+    "postDate": [".message-attribution-main time[datetime]"],
+    "cover": ["img.bbImage"],
+    "screenshots": ["img.bbImage"],
+    "threadTags": [".tagItem"]
+  },
+  "fields": {
+    "developer": "Developer:?\\s*(?<value>.+)",
+    "version": "Version:?\\s*(?<value>[\\w.]+)",
+    "engine": "Engine:?\\s*(?<value>.+)",
+    "status": "Status:?\\s*(?<value>.+)",
+    "language": "Language:?\\s*(?<value>.+)",
+    "genre": "Genre:?\\s*(?<value>.+)",
+    "installation": "Installation:?\\s*(?<value>.+)",
+    "releaseDate": "Release Date:?\\s*(?<value>.+)"
+  },
+  "versionPatterns": [
+    "\\[(?<v>Final)\\]",
+    "\\[v?(?<v>\\d+\\.[\\w.]*)\\]",
+    "\\b[vV](?<v>\\d+\\.[\\w.]*)\\b",
+    "Version\\s*:\\s*(?<v>[\\w.]+)"
+  ],
+  "statusPatterns": [
+    { "status": "completed", "pattern": "\\b(?:completed|finished)\\b" },
+    { "status": "abandoned", "pattern": "\\b(?:abandoned|discontinued)\\b" },
+    { "status": "onhold", "pattern": "\\bon[\\s-]?hold\\b" },
+    { "status": "ongoing", "pattern": "\\b(?:ongoing|in[\\s-]?development|wip)\\b" }
+  ],
+  "hosts": {
+    "pixeldrain.com": "mirror",
+    "gofile.io": "mirror",
+    "mega.nz": "mirror",
+    "mediafire.com": "mirror",
+    "workupload.com": "mirror",
+    "mixdrop.co": "mirror",
+    "krakenfiles.com": "mirror",
+    "buzzheavier.com": "mirror",
+    "send.now": "mirror",
+    "ufile.io": "mirror",
+    "doodrive.com": "mirror",
+    "drive.google.com": "mirror"
+  },
+  "attachmentHosts": ["attachments.f95zone.to"],
+  "listing": {
+    "path": "/forums/adult-games.1/",
+    "item": "div.structItem--thread",
+    "title": "a.structItem-title",
+    "link": "a.structItem-title",
+    "cover": "img",
+    "latest": ".structItem-cell--latest time[datetime]",
+    "pageParam": "page"
+  },
+  "rateLimitMs": 1200
+}
