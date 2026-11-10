@@ -19,7 +19,6 @@ The plugin asks the host for these values with `settings.get`. A missing value u
 | Field | Type | Default | What it does |
 |---|---|---|---|
 | `userAgent` | string | Chrome 126 on Windows | Browser identity sent to F95 Zone |
-| `rateLimitMs` | number | 1200 | Minimum wait between requests to one host |
 | `browserPath` | string | none | Browser executable for the local browser. Empty means the usual install paths |
 | `dumpDir` | string | none | When set, pages that fail to parse are saved here as `.html` |
 

@@ -29,7 +29,6 @@ Builds use `bun build --compile`. The result is one program with no separate Bun
 | `src/downloads/resolvers/` | Turns file-host pages into direct links |
 | `src/downloads/browser/` | Local browser (Chrome DevTools) for download links |
 | `src/library/f95-index.ts` | Builds the thread index from the sitemap |
-| `src/vendor/http.ts` | Local HTTP client with rate limit, cache and cookies |
 
 ## SDK
 
