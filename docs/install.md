@@ -29,14 +29,14 @@ The plugin needs your session cookie from F95 Zone.
 
 1. Log in to F95 Zone in your browser.
 2. Open the developer tools and copy the `Cookie` request header.
-3. Give the header to the launcher. The launcher stores it and sends it to the plugin as `credential`.
+3. Give the header to the launcher. The launcher passes it to the plugin, which checks it and saves it in the launcher's secret store.
 
 > [!WARNING]
 > The cookie gives full access to your account. Do not share it. Sign out of F95 Zone to end the session.
 
 ## Check the sign in
 
-Ask the plugin for `source.authStatus`. See [protocol.md](protocol.md).
+Ask the plugin for `source.authStatus`. See [protocol.md](protocol.md#requests-from-the-launcher).
 
 | Status | Meaning |
 |---|---|
