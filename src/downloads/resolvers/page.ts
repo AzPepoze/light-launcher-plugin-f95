@@ -1,5 +1,4 @@
-import { load } from '@light-launcher/plugin-sdk/helpers';
-import { DEFAULT_UA } from '../../vendor/http';
+import { DEFAULT_USER_AGENT, load } from '@light-launcher/plugin-sdk/helpers';
 import { hostOf } from '../hosts';
 
 export interface FetchedPage {
@@ -21,7 +20,7 @@ function scopedHeaders(url: string, headers: Record<string, string>): Record<str
     delete out.Cookie;
     delete out.Referer;
   }
-  return { 'User-Agent': DEFAULT_UA, ...out };
+  return { 'User-Agent': DEFAULT_USER_AGENT, ...out };
 }
 
 /** Returns the page HTML, or an empty string when the URL is already a file. */

@@ -45,13 +45,13 @@ export async function syncThreadIndex(
   onProgress('Indexing F95 threads…');
   try {
     const headers = await sitemapHeaders(services);
-    const index = await services.http.get(`${BASE}/sitemap.xml`, { headers, timeoutMs: 30_000 });
+    const index = await services.http.request(`${BASE}/sitemap.xml`, { headers, timeoutMs: 30_000 });
     const maps = [...index.text.matchAll(/<loc>([^<]*sitemap-\d+\.xml)<\/loc>/g)].map((m) => m[1]);
     if (!maps.length) throw new Error('sitemap index had no child maps');
 
     const rows: SitemapRow[] = [];
     for (const map of maps) {
-      const res = await services.http.get(map, { headers, timeoutMs: 120_000, maxBytes: 40 * 1024 * 1024 });
+      const res = await services.http.request(map, { headers, timeoutMs: 120_000, maxBytes: 40 * 1024 * 1024 });
       rows.push(...rowsFromMap(res.text));
       onProgress(`Indexing F95 threads… ${rows.length.toLocaleString()} found`);
     }

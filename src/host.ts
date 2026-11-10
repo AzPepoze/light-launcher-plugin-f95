@@ -1,4 +1,4 @@
-import type { HttpClient } from './vendor/http';
+import type { HttpClient } from '@light-launcher/plugin-sdk/helpers';
 import type { BrowserAssist } from './browser-assist';
 
 /** One row of the forum's public thread sitemap. */

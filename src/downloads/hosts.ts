@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { DEFAULT_UA } from '../vendor/http';
+import { DEFAULT_USER_AGENT } from '@light-launcher/plugin-sdk/helpers';
 
 /** Per-host defaults the downloader should send before a provider's own headers. */
 const REFERERS: Record<string, string> = {
@@ -43,7 +43,7 @@ export function mergeHeaders(
   headers?: Record<string, string> | null,
 ): Record<string, string> {
   return {
-    'User-Agent': DEFAULT_UA,
+    'User-Agent': DEFAULT_USER_AGENT,
     'Accept-Encoding': 'identity',
     ...defaultHeaders(url),
     ...(headers ?? {}),

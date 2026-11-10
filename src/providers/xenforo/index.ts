@@ -104,7 +104,7 @@ export function createXenForoProvider(
   async function inspectAccount(cookie: string): Promise<AuthState> {
     try {
       const checkUrl = urlFor(profile.auth.checkPath);
-      const res = await services.http.get(checkUrl, {
+      const res = await services.http.request(checkUrl, {
         headers: { Cookie: cookie },
         retries: 0,
         timeoutMs: 20_000,
@@ -172,12 +172,12 @@ export function createXenForoProvider(
 
   async function fetchGame(ref: Ref): Promise<GameDTO> {
     const key = await memoryId(ref.id);
-    let res = await services.http.get(ref.url, { cacheKey: ref.url, headers: await cookieHeaders() });
+    let res = await services.http.request(ref.url, { cacheKey: ref.url, headers: await cookieHeaders() });
     if (res.notModified) {
       const fresh = dtoCache.get(key);
       if (fresh && Date.now() - fresh.at < DTO_TTL_MS) return fresh.dto;
       // no parsed copy was retained, so ask for the body without validators
-      res = await services.http.get(ref.url, { headers: await cookieHeaders() });
+      res = await services.http.request(ref.url, { headers: await cookieHeaders() });
     }
     if (res.status >= 400) throw new Error(`${sourceId}: HTTP ${res.status} for ${ref.url}`);
     const dto = parseThread(res.text, profile, ref.url);
@@ -195,16 +195,16 @@ export function createXenForoProvider(
   async function fetchList(opts: { url?: string; query?: string; page?: number }): Promise<GameDTO[]> {
     const target = new URL(opts.url ?? `${base}${profile.listing.path}`, `${base}/`);
     if (opts.page && opts.page > 1) target.searchParams.set(profile.listing.pageParam, String(opts.page));
-    const res = await services.http.get(target.toString(), { headers: await cookieHeaders() });
+    const res = await services.http.request(target.toString(), { headers: await cookieHeaders() });
     if (res.notModified || res.status >= 400) return [];
     return parseListing(res.text, profile, target.toString());
   }
 
   async function threadHtml(game: GameRef): Promise<string> {
-    let res = await services.http.get(game.url, { cacheKey: game.url, headers: await cookieHeaders() });
+    let res = await services.http.request(game.url, { cacheKey: game.url, headers: await cookieHeaders() });
     if (res.notModified) {
       // the http cache only stores validators, so revalidate without a cache key
-      res = await services.http.get(game.url, { headers: await cookieHeaders() });
+      res = await services.http.request(game.url, { headers: await cookieHeaders() });
     }
     if (res.status >= 400) throw new Error(`${sourceId}: ${refusedMessage(res.status, game.url)}`);
     return res.text;
@@ -260,7 +260,7 @@ export function createXenForoProvider(
   }
 
   async function checkUpdate(game: GameRef): Promise<UpdateInfo | null> {
-    const res = await services.http.get(game.url, { cacheKey: game.url, headers: await cookieHeaders() });
+    const res = await services.http.request(game.url, { cacheKey: game.url, headers: await cookieHeaders() });
     if (res.notModified) return null;
     if (res.status >= 400) throw new Error(`${sourceId}: ${refusedMessage(res.status, game.url)}`);
     const fresh = parseThread(res.text, profile, game.url);

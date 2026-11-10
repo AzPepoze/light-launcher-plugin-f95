@@ -1,4 +1,4 @@
-import { DEFAULT_UA } from '../../vendor/http';
+import { DEFAULT_USER_AGENT } from '@light-launcher/plugin-sdk/helpers';
 import { FileHostResolver, type ResolvedDownload } from './base';
 
 const REQUEST_TIMEOUT_MS = 30_000;
@@ -9,7 +9,7 @@ export class BuzzHeavierHost extends FileHostResolver {
 
   async resolve(url: string): Promise<ResolvedDownload | null> {
     const res = await fetch(`${url.replace(/\/+$/, '')}/download`, {
-      headers: { 'User-Agent': DEFAULT_UA },
+      headers: { 'User-Agent': DEFAULT_USER_AGENT },
       redirect: 'manual',
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });

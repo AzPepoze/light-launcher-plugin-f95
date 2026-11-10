@@ -7,27 +7,27 @@ import {
   type PluginNotificationHandlers,
   type SourceProvider,
 } from '@light-launcher/plugin-sdk/runtime';
+import { DEFAULT_USER_AGENT, HttpClient, hostTransport } from '@light-launcher/plugin-sdk/helpers';
 import { ErrorCode, RpcFailure, type InitializeParams } from '@light-launcher/plugin-sdk/types';
 import manifest from '../plugin.json';
 import profileJson from '../profiles/f95zone.json';
 import { BrowserEvents, createBrowserAssist, type BrowserAssist } from './browser-assist';
-import { fileSitemapCache, memoryHttpCache } from './cache';
+import { fileSitemapCache } from './cache';
 import { secretCredentialStore } from './credential';
 import type { HostServices, LogFn } from './host';
 import { createLogger } from './log';
 import { createF95Provider } from './providers/f95';
 import { loadProfile } from './providers/xenforo';
-import { DEFAULT_UA, HttpClient } from './vendor/http';
 
 const API_VERSION = '1';
-const DEFAULT_RATE_LIMIT_MS = 1200;
 const SETTINGS_TIMEOUT_MS = 5_000;
+/** Largest response the plugin accepts. The sitemap call raises its own limit. */
+const MAX_BODY_BYTES = 12 * 1024 * 1024;
 /** Selector fixes go here, in the plugin's data directory, so they need no rebuild. */
 const PROFILE_OVERLAY_PATH = ['profiles', 'f95zone.local.json'] as const;
 
 interface PluginSettings {
   userAgent: string;
-  rateLimitMs: number;
   browserPath: string | null;
   dumpDir: string | null;
 }
@@ -42,15 +42,9 @@ function textSetting(raw: Record<string, unknown>, key: string): string | null {
   return typeof value === 'string' && value.trim() ? value : null;
 }
 
-function numberSetting(raw: Record<string, unknown>, key: string): number | null {
-  const value = raw[key];
-  return typeof value === 'number' && Number.isFinite(value) ? value : null;
-}
-
 function settingsFrom(raw: Record<string, unknown>): PluginSettings {
   return {
-    userAgent: textSetting(raw, 'userAgent') ?? DEFAULT_UA,
-    rateLimitMs: numberSetting(raw, 'rateLimitMs') ?? DEFAULT_RATE_LIMIT_MS,
+    userAgent: textSetting(raw, 'userAgent') ?? DEFAULT_USER_AGENT,
     browserPath: textSetting(raw, 'browserPath'),
     dumpDir: textSetting(raw, 'dumpDir'),
   };
@@ -87,7 +81,10 @@ interface ServicesInput {
 function buildServices(input: ServicesInput): HostServices {
   const { dataDir, settings, log, ctx } = input;
   const base = {
-    http: new HttpClient({ rateLimitMs: settings.rateLimitMs, userAgent: settings.userAgent, cache: memoryHttpCache() }),
+    http: new HttpClient(hostTransport(ctx.host), {
+      defaultHeaders: { 'User-Agent': settings.userAgent },
+      maxBodyBytes: MAX_BODY_BYTES,
+    }),
     credential: secretCredentialStore(ctx.host.secrets),
     dump: dumpInto(settings.dumpDir),
     log,

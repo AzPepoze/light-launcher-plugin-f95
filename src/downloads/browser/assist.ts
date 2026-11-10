@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { CaptureServices } from '../../host';
-import { DEFAULT_UA } from '../../vendor/http';
+import { DEFAULT_USER_AGENT } from '@light-launcher/plugin-sdk/helpers';
 import { filenameFromDisposition } from '../hosts';
 import { CdpClient } from './cdp';
 import { watchTabs } from './tabs';
@@ -293,7 +293,7 @@ async function capture(
   const { signal } = options;
   const cookie = await services.credential.get();
   if (!cookie) throw new Error('F95 is not connected — save the session cookie first');
-  const userAgent = options.userAgent ?? DEFAULT_UA;
+  const userAgent = options.userAgent ?? DEFAULT_USER_AGENT;
   const current = await getSession(services, epoch, options.browserPath);
   if (current.idle) {
     clearTimeout(current.idle);

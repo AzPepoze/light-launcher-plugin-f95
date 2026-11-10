@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import { pipeline } from 'node:stream/promises';
-import { DEFAULT_UA } from '../vendor/http';
+import { DEFAULT_USER_AGENT } from '@light-launcher/plugin-sdk/helpers';
 
 const API_URL = 'https://g.api.mega.co.nz/cs';
 const API_TIMEOUT_MS = 30_000;
@@ -74,7 +74,7 @@ export function decryptName(attributes: string, aesKey: Buffer): string {
 export async function resolveMega(link: MegaLink): Promise<MegaFile> {
   const res = await fetch(`${API_URL}?id=${Math.floor(Math.random() * 1e9)}`, {
     method: 'POST',
-    headers: { 'User-Agent': DEFAULT_UA, 'Content-Type': 'application/json' },
+    headers: { 'User-Agent': DEFAULT_USER_AGENT, 'Content-Type': 'application/json' },
     body: JSON.stringify([{ a: 'g', g: 1, p: link.handle }]),
     signal: AbortSignal.timeout(API_TIMEOUT_MS),
   });

@@ -1,14 +1,15 @@
 import os from 'node:os';
 import path from 'node:path';
+import { HttpClient, type HttpTransport } from '@light-launcher/plugin-sdk/helpers';
+import type { HttpRequestParams, HttpRequestResult } from '@light-launcher/plugin-sdk/types';
 import type { BrowserAssist, BrowserCapture } from '../src/browser-assist';
 import type { HostServices, SitemapRow } from '../src/host';
-import type { HttpResult, RequestOptions } from '../src/vendor/http';
 
-export type Responder = (url: string, options: RequestOptions) => Partial<HttpResult>;
+export type Responder = (url: string, params: HttpRequestParams) => Partial<HttpRequestResult>;
 
 export interface FakeHttpCall {
   url: string;
-  options: RequestOptions;
+  options: HttpRequestParams;
 }
 
 export interface FakeServicesOptions {
@@ -36,16 +37,16 @@ export function fakeServices(options: FakeServicesOptions = {}): FakeServices {
   const sitemap = new Map<string, { syncedAt: string; rows: SitemapRow[] }>();
   let credential = options.credential ?? null;
 
-  const http = {
-    get: async (url: string, requestOptions: RequestOptions = {}): Promise<HttpResult> => {
-      calls.push({ url, options: requestOptions });
+  const transport: HttpTransport = {
+    request: async (params) => {
+      calls.push({ url: params.url, options: params });
       return {
         status: 200,
-        url,
+        url: params.url,
         text: '',
-        headers: new Headers(),
+        headers: {},
         notModified: false,
-        ...(options.respond?.(url, requestOptions) ?? {}),
+        ...(options.respond?.(params.url, params) ?? {}),
       };
     },
   };
@@ -61,7 +62,7 @@ export function fakeServices(options: FakeServicesOptions = {}): FakeServices {
 
   const services: HostServices = {
     browser,
-    http: http as unknown as HostServices['http'],
+    http: new HttpClient(transport),
     credential: {
       get: async () => credential,
       set: async (value) => {
