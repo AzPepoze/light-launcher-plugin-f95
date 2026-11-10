@@ -321,11 +321,11 @@ describe('provider wiring', () => {
     const { provider } = makeProvider(() => ({}), 'session=abc');
     const attachment = extractFileCandidates(threadHtml, profile, threadUrl)
       .find((file) => file.requiresAuth)!;
-    const prepared = await provider.prepareDownload(attachment, gameRef());
+    const prepared = await provider.prepareDownload(attachment, gameRef(), {});
     expect(prepared.headers).toEqual({ Cookie: 'session=abc', Referer: 'https://f95zone.to/threads/12345/' });
 
     const anonymous = makeProvider(() => ({})).provider;
-    await expect(anonymous.prepareDownload(attachment, gameRef())).rejects.toThrow('requires a stored session cookie');
+    await expect(anonymous.prepareDownload(attachment, gameRef(), {})).rejects.toThrow('requires a stored session cookie');
   });
 
   test('checkUpdate compares versions and edit times', async () => {

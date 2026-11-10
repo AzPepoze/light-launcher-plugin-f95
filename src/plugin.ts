@@ -1,9 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import type {
-  PluginContext,
-  PluginHandlers,
-  PluginNotificationHandlers,
+import {
+  sourceHandlers,
+  type PluginContext,
+  type PluginHandlers,
+  type PluginNotificationHandlers,
+  type SourceProvider,
 } from '@light-launcher/plugin-sdk/runtime';
 import { ErrorCode, RpcFailure, type InitializeParams } from '@light-launcher/plugin-sdk/types';
 import manifest from '../plugin.json';
@@ -13,8 +15,6 @@ import { fileSitemapCache, memoryHttpCache } from './cache';
 import { secretCredentialStore } from './credential';
 import type { HostServices, LogFn } from './host';
 import { createLogger } from './log';
-import type { Provider } from './provider';
-import { indexStatus, syncThreadIndex } from './library/f95-index';
 import { createF95Provider } from './providers/f95';
 import { loadProfile } from './providers/xenforo';
 import { DEFAULT_UA, HttpClient } from './vendor/http';
@@ -34,14 +34,7 @@ interface PluginSettings {
 
 interface RunState {
   services: HostServices;
-  provider: Provider;
-}
-
-function requireText(value: unknown, name: string): string {
-  if (typeof value !== 'string' || !value.trim()) {
-    throw new RpcFailure(ErrorCode.InvalidParams, `missing string param: ${name}`);
-  }
-  return value;
+  provider: SourceProvider;
 }
 
 function textSetting(raw: Record<string, unknown>, key: string): string | null {
@@ -154,26 +147,7 @@ export function createPlugin(): { handlers: PluginHandlers; notifications: Plugi
       await state?.services.browser.close();
       return null;
     },
-
-    'source.authStatus': () => ready().provider.authStatus(),
-    'source.setCredential': (params) => ready().provider.setCredential(requireText(params.value, 'value')),
-    'source.clearCredential': () => ready().provider.clearCredential(),
-    'source.parseRef': (params) => ready().provider.parseRef(requireText(params.url, 'url')),
-
-    'source.search': async (params) => ({
-      games: await ready().provider.fetchList({ url: params.url, query: params.query, page: params.page }),
-    }),
-    'source.fetchGame': async (params) => ({ game: await ready().provider.fetchGame(params.ref) }),
-    'source.resolveFiles': async (params) => ({ files: await ready().provider.resolveFiles(params.game) }),
-    'source.prepareDownload': (params, ctx) =>
-      ready().provider.prepareDownload(params.file, params.game, { signal: ctx.signal, progress: ctx.progress }),
-    'source.checkUpdate': async (params) => ({ update: await ready().provider.checkUpdate(params.game) }),
-
-    'source.sync': async (_params, ctx) => {
-      const { services } = ready();
-      await syncThreadIndex(services, 'f95', (message) => ctx.progress({ message }));
-      return indexStatus(services);
-    },
+    ...sourceHandlers(() => ready().provider, 'f95'),
   };
 
   const notifications: PluginNotificationHandlers = {

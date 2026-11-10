@@ -3,8 +3,9 @@ import type {
   AuthState, FileCandidate, GameDTO, GameRef, ProviderCapabilities, Ref, UpdateInfo,
 } from '@light-launcher/plugin-sdk/types';
 import { isNewer } from '@light-launcher/plugin-sdk/helpers';
+import type { CallHooks, SourceProvider } from '@light-launcher/plugin-sdk/runtime';
+import type { PrepareDownloadResult } from '@light-launcher/plugin-sdk/types';
 import type { HostServices } from '../../host';
-import type { DownloadCall, DownloadTarget, Provider } from '../../provider';
 import type { XenForoProfile } from './profile';
 import {
   extractFileCandidates, isDownloadRedirect, parseAccountName, parseListing, parseThread, parseThreadMeta,
@@ -74,7 +75,7 @@ export function createXenForoProvider(
   profile: XenForoProfile,
   services: HostServices,
   options: XenForoProviderOptions = {},
-): Provider {
+): SourceProvider {
   const sourceId = options.id ?? profile.id;
   const label = options.label ?? profile.label;
   const base = profile.baseUrl.replace(/\/+$/, '');
@@ -222,11 +223,11 @@ export function createXenForoProvider(
   }
 
   /** A forum /dl/ link leads to a file host through a page that needs a real browser. */
-  async function captureRedirect(file: FileCandidate, call: DownloadCall): Promise<DownloadTarget> {
+  async function captureRedirect(file: FileCandidate, hooks: CallHooks): Promise<PrepareDownloadResult> {
     const captured = await services.browser.capture(file.url, {
-      signal: call.signal,
-      onWaiting: (message) => call.progress?.({ message }),
-      onProgress: (percent, message) => call.progress?.({ done: percent, total: 100, message }),
+      signal: hooks.signal,
+      onWaiting: (message) => hooks.progress?.({ message }),
+      onProgress: (percent, message) => hooks.progress?.({ done: percent, total: 100, message }),
     });
     if (!captured.capturedUrl) {
       throw new Error(`${label}: no download link was captured. Press Download File in the browser window and try again.`);
@@ -234,8 +235,8 @@ export function createXenForoProvider(
     return { url: captured.capturedUrl, headers: captured.headers ?? {} };
   }
 
-  async function prepareDownload(file: FileCandidate, game: GameRef, call: DownloadCall = {}): Promise<DownloadTarget> {
-    if (isDownloadRedirect(file.url)) return captureRedirect(file, call);
+  async function prepareDownload(file: FileCandidate, game: GameRef, hooks: CallHooks = {}): Promise<PrepareDownloadResult> {
+    if (isDownloadRedirect(file.url)) return captureRedirect(file, hooks);
     if (file.requiresAuth) {
       const cookie = await savedCookie();
       if (!cookie) {
@@ -277,7 +278,6 @@ export function createXenForoProvider(
 
   return {
     id: sourceId,
-    label,
     capabilities,
     parseRef,
     authStatus,

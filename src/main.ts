@@ -3,5 +3,5 @@ import { createPlugin } from './plugin';
 
 if (import.meta.main) {
   const { handlers, notifications } = createPlugin();
-  await servePlugin(handlers, stdioIo(), notifications);
+  await servePlugin(handlers, stdioIo(), notifications, { validateParams: true });
 }
