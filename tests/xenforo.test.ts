@@ -328,6 +328,27 @@ describe('provider wiring', () => {
     await expect(anonymous.prepareDownload(attachment, gameRef(), {})).rejects.toThrow('requires a stored session cookie');
   });
 
+  test('prepareDownload returns the file name, size and headers the browser captured', async () => {
+    const fake = fakeServices({
+      capture: () => ({
+        capturedUrl: 'https://pixeldrain.com/u/abc',
+        filename: 'game.zip',
+        size: 42,
+        headers: { Cookie: 'session=abc' },
+      }),
+    });
+    const provider = createF95Provider(fake.services, { profile });
+    const redirect = { ...extractFileCandidates(threadHtml, profile, threadUrl)[0], url: 'https://f95zone.to/dl/1/' };
+
+    const prepared = await provider.prepareDownload(redirect, gameRef(), {});
+    expect(prepared).toEqual({
+      url: 'https://pixeldrain.com/u/abc',
+      headers: { Cookie: 'session=abc' },
+      filename: 'game.zip',
+      size: 42,
+    });
+  });
+
   test('checkUpdate compares versions and edit times', async () => {
     expect(isNewer('0.8.1', '0.7.9')).toBe(true);
     const { provider } = makeProvider(() => ({ text: threadHtml }));

@@ -232,7 +232,12 @@ export function createXenForoProvider(
     if (!captured.capturedUrl) {
       throw new Error(`${label}: no download link was captured. Press Download File in the browser window and try again.`);
     }
-    return { url: captured.capturedUrl, headers: captured.headers ?? {} };
+    return {
+      url: captured.capturedUrl,
+      headers: captured.headers ?? {},
+      filename: captured.filename ?? undefined,
+      size: captured.size ?? undefined,
+    };
   }
 
   async function prepareDownload(file: FileCandidate, game: GameRef, hooks: CallHooks = {}): Promise<PrepareDownloadResult> {

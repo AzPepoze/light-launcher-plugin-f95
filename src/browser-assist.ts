@@ -8,7 +8,7 @@ export interface BrowserCapture {
   capturedUrl: string | null;
   filename?: string | null;
   size?: number | null;
-  /** cookies the download needs; only the local browser returns them */
+  /** headers the download needs, such as Cookie */
   headers?: Record<string, string>;
 }
 
@@ -69,7 +69,12 @@ class HostBrowserAssist implements BrowserAssist {
         { url, timeoutMs: HOST_TIMEOUT_MS, token },
         { signal: options.signal },
       );
-      return { capturedUrl: result.capturedUrl, filename: result.filename, size: result.size };
+      return {
+        capturedUrl: result.capturedUrl,
+        filename: result.filename,
+        size: result.size,
+        headers: result.headers,
+      };
     } finally {
       unsubscribe();
     }
