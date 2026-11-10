@@ -1,0 +1,40 @@
+{
+  "id": "f95",
+  "name": "F95 Zone",
+  "version": "1.0.0",
+  "apiVersion": "1",
+  "minHost": "2.0.0",
+  "entry": {
+    "linux-x64": "bin/linux-x64/f95",
+    "windows-x64": "bin/windows-x64/f95.exe"
+  },
+  "contributes": {
+    "sources": [
+      {
+        "id": "f95",
+        "label": "F95 Zone",
+        "capabilities": ["browse", "auth", "updateCheck", "resolveFiles"]
+      }
+    ]
+  },
+  "permissions": {
+    "network": [
+      "f95zone.to",
+      "*.f95zone.to",
+      "pixeldrain.com",
+      "mediafire.com",
+      "workupload.com",
+      "datanodes.to",
+      "krakenfiles.com",
+      "buzzheavier.com",
+      "bzzhr.to",
+      "mixdrop.co",
+      "mega.nz",
+      "*.mega.co.nz"
+    ],
+    "fs": [],
+    "secrets": true,
+    "browser": true,
+    "exec": false
+  }
+}

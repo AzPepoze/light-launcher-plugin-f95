@@ -1,0 +1,20 @@
+{
+  "name": "light-launcher-plugin-f95",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "F95 Zone source plugin for Light Launcher.",
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "build:linux": "bun build --compile --target=bun-linux-x64 src/main.ts --outfile bin/linux-x64/f95",
+    "build:windows": "bun build --compile --target=bun-windows-x64 src/main.ts --outfile bin/windows-x64/f95.exe"
+  },
+  "dependencies": {
+    "cheerio": "^1.2.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.4",
+    "typescript": "5.9.3"
+  }
+}
