@@ -11,10 +11,12 @@
     "build:windows": "bun build --compile --target=bun-windows-x64 src/main.ts --outfile bin/windows-x64/f95.exe"
   },
   "dependencies": {
+    "@light-launcher/plugin-sdk": "file:../light-launcher-plugin-sdk",
     "cheerio": "^1.2.0"
   },
   "devDependencies": {
     "@types/bun": "^1.4.4",
+    "ajv": "8.20.0",
     "typescript": "5.9.3"
   }
 }
