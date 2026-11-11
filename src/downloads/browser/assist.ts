@@ -114,14 +114,27 @@ function parseCookies(header: string): { name: string; value: string }[] {
   return out;
 }
 
-async function waitForPort(file: string, proc: ReturnType<typeof Bun.spawn>): Promise<number> {
+interface DebugEndpoint {
+  port: number;
+  /** browser-level socket path, such as /devtools/browser/<id> */
+  socketPath: string;
+}
+
+/** Chrome writes the debug port and the browser socket path to DevToolsActivePort. */
+function readEndpoint(file: string): DebugEndpoint | null {
+  const [rawPort, socketPath] = fs.readFileSync(file, 'utf8').split('\n').map((line) => line.trim());
+  const port = Number(rawPort);
+  if (!Number.isInteger(port) || port <= 0 || !socketPath?.startsWith('/devtools/browser/')) return null;
+  return { port, socketPath };
+}
+
+async function waitForEndpoint(file: string, proc: ReturnType<typeof Bun.spawn>): Promise<DebugEndpoint> {
   const started = Date.now();
   while (Date.now() - started < 15_000) {
     if (proc.exitCode !== null) throw new Error('the browser exited before its debug port was ready');
     try {
-      const raw = fs.readFileSync(file, 'utf8').split('\n')[0]?.trim();
-      const port = Number(raw);
-      if (Number.isFinite(port) && port > 0) return port;
+      const endpoint = readEndpoint(file);
+      if (endpoint) return endpoint;
     } catch {
       /* not written yet */
     }
@@ -203,13 +216,9 @@ async function launch(services: CaptureServices, browserPath: string | null | un
     /* best effort */
   }
   try {
-    const port = await waitForPort(portFile, proc);
+    const endpoint = await waitForEndpoint(portFile, proc);
     // the browser-level socket sees every tab, including ones the site opens later
-    const version = (await fetch(`http://127.0.0.1:${port}/json/version`).then((res) => res.json())) as {
-      webSocketDebuggerUrl?: string;
-    };
-    if (!version.webSocketDebuggerUrl) throw new Error('the browser did not expose a debug socket');
-    const cdp = await CdpClient.connect(version.webSocketDebuggerUrl);
+    const cdp = await CdpClient.connect(`ws://127.0.0.1:${endpoint.port}${endpoint.socketPath}`);
     services.log('info', 'browser assist window ready');
     return { proc, cdp, idle: null, services };
   } catch (err) {
