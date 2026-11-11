@@ -42,6 +42,9 @@ The dependency points at the SDK folder next to this repo:
 > [!IMPORTANT]
 > `bun install` copies the SDK into `node_modules`. Run `bun install` again after the SDK changes.
 
+> [!NOTE]
+> CI checks out the [SDK repository](https://github.com/AzPepoze/light-launcher-plugin-sdk) next to this repo before `bun install`, because the package is not published yet. That checkout goes away once the SDK is on a registry.
+
 ## Tests
 
 Tests use in-memory fakes from `tests/fakes.ts`. They do not contact F95 Zone or start a browser. They read HTML fixtures from `tests/fixtures/`.
