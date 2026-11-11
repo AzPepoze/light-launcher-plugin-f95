@@ -35,9 +35,10 @@ Each setting has a default. An empty or missing value uses the default.
 The launcher has two download roots: its downloads folder and its games folder. It does not
 let a plugin choose an absolute folder. The plugin answers with a root (`downloadRoot`) and,
 when **Put each game in its own folder** is on, one subfolder named after the game title.
-The title is made safe as one folder name: path characters and control characters are
-removed, leading dots and spaces are dropped, spaces are collapsed, and a very long title is
-shortened. A title with nothing left becomes `game`.
+The title is made safe as one folder name with the SDK's
+[folder name rules](https://github.com/AzPepoze/light-launcher-plugin-sdk/blob/main/docs/download-hints.md#folder-names).
+In short: forbidden characters are removed, the name is capped at 200 bytes, and a Windows
+device name such as `CON` gets an underscore.
 
 Saving into the games folder, or unpacking after the download, needs the `$GAMES` folder
 permission in [plugin.json](../plugin.json). The launcher then checks the folder path and
