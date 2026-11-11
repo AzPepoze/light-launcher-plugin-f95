@@ -67,8 +67,9 @@ interface ServicesInput {
 
 function buildServices(input: ServicesInput): HostServices {
   const { dataDir, settings, log, ctx } = input;
+  const transport = spacedTransport(loggedTransport(hostTransport(ctx.host), log), settings.requestDelayMs);
   const base = {
-    http: new HttpClient(spacedTransport(loggedTransport(hostTransport(ctx.host), log), settings.requestDelayMs), {
+    http: new HttpClient(transport, {
       defaultHeaders: { 'User-Agent': settings.userAgent },
       maxBodyBytes: MAX_BODY_BYTES,
     }),
