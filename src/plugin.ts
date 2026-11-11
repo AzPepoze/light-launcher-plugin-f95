@@ -7,7 +7,7 @@ import {
   type PluginNotificationHandlers,
   type SourceProvider,
 } from '@light-launcher/plugin-sdk/runtime';
-import { DEFAULT_USER_AGENT, HttpClient, hostTransport } from '@light-launcher/plugin-sdk/helpers';
+import { HttpClient, hostTransport } from '@light-launcher/plugin-sdk/helpers';
 import { ErrorCode, RpcFailure, type InitializeParams } from '@light-launcher/plugin-sdk/types';
 import manifest from '../plugin.json';
 import profileJson from '../profiles/f95zone.json';
@@ -18,6 +18,7 @@ import type { HostServices, LogFn } from './host';
 import { createLogger } from './log';
 import { createF95Provider } from './providers/f95';
 import { loadProfile } from './providers/xenforo';
+import { settingsFrom, type PluginSettings } from './settings';
 
 const API_VERSION = '1';
 const SETTINGS_TIMEOUT_MS = 5_000;
@@ -26,28 +27,9 @@ const MAX_BODY_BYTES = 12 * 1024 * 1024;
 /** Selector fixes go here, in the plugin's data directory, so they need no rebuild. */
 const PROFILE_OVERLAY_PATH = ['profiles', 'f95zone.local.json'] as const;
 
-interface PluginSettings {
-  userAgent: string;
-  browserPath: string | null;
-  dumpDir: string | null;
-}
-
 interface RunState {
   services: HostServices;
   provider: SourceProvider;
-}
-
-function textSetting(raw: Record<string, unknown>, key: string): string | null {
-  const value = raw[key];
-  return typeof value === 'string' && value.trim() ? value : null;
-}
-
-function settingsFrom(raw: Record<string, unknown>): PluginSettings {
-  return {
-    userAgent: textSetting(raw, 'userAgent') ?? DEFAULT_USER_AGENT,
-    browserPath: textSetting(raw, 'browserPath'),
-    dumpDir: textSetting(raw, 'dumpDir'),
-  };
 }
 
 /** Host settings are optional: when the host cannot answer, the defaults apply. */
