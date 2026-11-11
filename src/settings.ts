@@ -21,6 +21,7 @@ export interface PluginSettings {
   /** extra wait between two requests, on top of the launcher's own spacing */
   requestDelayMs: number;
   verboseLogging: boolean;
+  browserAssistEnabled: boolean;
 }
 
 const HOUR_MS = 60 * 60 * 1000;
@@ -30,6 +31,11 @@ const MAX_REQUEST_DELAY_MS = 10_000;
 function textSetting(raw: Record<string, unknown>, key: string): string | null {
   const value = raw[key];
   return typeof value === 'string' && value.trim() ? value : null;
+}
+
+function boolSetting(raw: Record<string, unknown>, key: string, fallback: boolean): boolean {
+  const value = raw[key];
+  return typeof value === 'boolean' ? value : fallback;
 }
 
 function isRankedHost(value: unknown): value is RankedHost {
@@ -77,6 +83,7 @@ export function settingsFrom(raw: Record<string, unknown>): PluginSettings {
     filePreferences: filePreferencesFrom(raw),
     updateCheckIntervalMs: updateIntervalMsSetting(raw),
     requestDelayMs: requestDelaySetting(raw),
-    verboseLogging: raw.verboseLogging === true,
+    verboseLogging: boolSetting(raw, 'verboseLogging', false),
+    browserAssistEnabled: boolSetting(raw, 'browserAssistEnabled', true),
   };
 }

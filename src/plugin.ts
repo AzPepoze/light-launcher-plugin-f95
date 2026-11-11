@@ -84,6 +84,7 @@ function buildServices(input: ServicesInput): HostServices {
     events: input.events,
     services: base,
     settings: { browserPath: settings.browserPath, userAgent: settings.userAgent },
+    enabled: settings.browserAssistEnabled,
   });
   return { ...base, browser };
 }

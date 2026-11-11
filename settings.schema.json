@@ -50,6 +50,13 @@
       "x-ll-group": "Network",
       "x-ll-advanced": true
     },
+    "browserAssistEnabled": {
+      "type": "boolean",
+      "title": "Browser assist",
+      "description": "Open a browser to capture the links behind forum download buttons. When off, those downloads fail with a message.",
+      "default": true,
+      "x-ll-group": "Browser"
+    },
     "browserPath": {
       "type": "string",
       "title": "Browser program",

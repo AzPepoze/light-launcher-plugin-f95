@@ -153,6 +153,17 @@ class PreferredBrowserAssist implements BrowserAssist {
   }
 }
 
+/** Refuses every capture. Used when the user turns browser assist off in the settings. */
+class DisabledBrowserAssist implements BrowserAssist {
+  capture(): Promise<BrowserCapture> {
+    return Promise.reject(new Error('browser assist is turned off in the plugin settings'));
+  }
+
+  close(): Promise<void> {
+    return Promise.resolve();
+  }
+}
+
 export interface BrowserAssistInput {
   /** grantedPermissions.browser from initialize */
   hostGranted: boolean;
@@ -160,10 +171,13 @@ export interface BrowserAssistInput {
   events: BrowserEvents;
   services: CaptureServices;
   settings: LocalBrowserSettings;
+  /** false refuses every capture; defaults to true */
+  enabled?: boolean;
 }
 
 /** Host browser.assist when the host granted the browser permission, otherwise the local browser. */
 export function createBrowserAssist(input: BrowserAssistInput): BrowserAssist {
+  if (input.enabled === false) return new DisabledBrowserAssist();
   const local = new LocalBrowserAssist(input.services, input.settings);
   if (!input.hostGranted) return local;
   return new PreferredBrowserAssist(new HostBrowserAssist(input.host, input.events), local, input.services.log);

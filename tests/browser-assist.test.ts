@@ -111,6 +111,17 @@ describe('createBrowserAssist', () => {
     expect(logs.filter((line) => line.includes('no browser.assist'))).toHaveLength(1);
   });
 
+  test('refuses every capture without starting a browser when turned off', async () => {
+    const { host, calls } = fakeHost(async () => ({ capturedUrl: 'https://pixeldrain.com/u/abc' }));
+    const { services } = fakeServices();
+    const assist = createBrowserAssist({
+      hostGranted: true, host, events: new BrowserEvents(), services, settings: NO_BROWSER, enabled: false,
+    });
+
+    await expect(assist.capture(PAGE)).rejects.toThrow('turned off in the plugin settings');
+    expect(calls).toEqual([]);
+  });
+
   test('does not call the host when the browser permission was not granted', async () => {
     const events = new BrowserEvents();
     const { host, calls } = fakeHost(async () => ({ capturedUrl: 'https://example.com/x' }));

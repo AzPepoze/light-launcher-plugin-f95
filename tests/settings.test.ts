@@ -47,6 +47,7 @@ describe('settings.schema.json', () => {
       updateCheckIntervalMs: 0,
       requestDelayMs: 0,
       verboseLogging: false,
+      browserAssistEnabled: true,
     });
   });
 
@@ -67,6 +68,7 @@ describe('settingsFrom', () => {
       updateCheckIntervalMs: 0,
       requestDelayMs: 0,
       verboseLogging: false,
+      browserAssistEnabled: true,
     });
   });
 
@@ -87,6 +89,7 @@ describe('settingsFrom', () => {
       updateCheckIntervalMs: 0,
       requestDelayMs: 0,
       verboseLogging: false,
+      browserAssistEnabled: true,
     });
   });
 
@@ -113,6 +116,12 @@ describe('settingsFrom', () => {
   test('turns verbose logging on only for a true value', () => {
     expect(settingsFrom({ verboseLogging: true }).verboseLogging).toBe(true);
     expect(settingsFrom({ verboseLogging: 'yes' }).verboseLogging).toBe(false);
+  });
+
+  test('browser assist is on unless the host sends false', () => {
+    expect(settingsFrom({}).browserAssistEnabled).toBe(true);
+    expect(settingsFrom({ browserAssistEnabled: false }).browserAssistEnabled).toBe(false);
+    expect(settingsFrom({ browserAssistEnabled: 'no' }).browserAssistEnabled).toBe(true);
   });
 
   test('reads the platform and falls back to any for an unknown value', () => {
