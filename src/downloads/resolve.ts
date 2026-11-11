@@ -1,5 +1,7 @@
 import { findResolver, type ResolveContext, type ResolvedDownload } from './resolvers';
 
+export { findResolver } from './resolvers';
+
 export type { ResolvedDownload } from './resolvers';
 
 const cache = new Map<string, { value: ResolvedDownload; at: number }>();
@@ -28,12 +30,13 @@ export async function resolveDownload(url: string, context: ResolveContext): Pro
 
   let value: ResolvedDownload;
   try {
-    value = (await resolver.resolve(url, context)) ?? { url };
+    value = (await resolver.resolve(url, context)) ?? { url, needsHuman: true };
   } catch (err) {
     if (!resolver.failsOpen) throw err;
     // a resolver failure is not fatal: the normal probe can still try the original URL
     value = { url };
   }
+  if (value.needsHuman) return value;
   remember(url, value);
   return value;
 }

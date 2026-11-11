@@ -236,3 +236,5 @@ export function withBrowserHeaders(
   const scoped = headersForHost(url, base);
   return browserHeaders ? { ...scoped, ...browserHeaders } : scoped;
 }
+
+export { sanitizeGameFolder, safeFolderName, sanitizeFolderName } from './hints';

@@ -1,7 +1,7 @@
 import type { HttpClient } from '@light-launcher/plugin-sdk/helpers';
 import type { MegaCipherKey } from '../mega';
 import { hostOf } from '../hosts';
-import { fetchPage, firstLink, genericDownloadLink } from './page';
+import { fetchPage, firstLink, genericDownloadLink, needsHumanStep } from './page';
 
 /** Everything a resolver needs to reach the network through the host. */
 export interface ResolveContext {
@@ -13,8 +13,11 @@ export interface ResolvedDownload {
   url: string;
   headers?: Record<string, string>;
   filename?: string | null;
+  size?: number | null;
   /** MEGA content is encrypted; the download is decrypted when it finishes */
   decrypt?: MegaCipherKey | null;
+  /** the page needs a person: a timer, login, captcha or button */
+  needsHuman?: boolean;
 }
 
 /** One file host. Each supported host has its own subclass. */
@@ -43,6 +46,7 @@ export abstract class PageFileHost extends FileHostResolver {
     if (!page) return null;
     // the URL already points at the file
     if (!page.html) return { url: page.url };
+    if (needsHumanStep(page.html)) return { url: page.url, needsHuman: true };
     const next = firstLink(page.html, page.url, this.selector) ?? genericDownloadLink(page.html, page.url);
     return next ? { url: next } : null;
   }

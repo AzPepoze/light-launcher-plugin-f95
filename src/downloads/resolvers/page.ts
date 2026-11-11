@@ -22,9 +22,27 @@ function scopedHeaders(url: string, headers: Record<string, string>): Record<str
   return { 'User-Agent': DEFAULT_USER_AGENT, ...out };
 }
 
+const HUMAN_STEP = [
+  /\b(?:g-recaptcha|h-captcha|hcaptcha|cf-turnstile|recaptcha)\b/i,
+  /type\s*=\s*["']password["']/i,
+  /\b(?:captcha|cloudflare|just a moment|checking your browser)\b/i,
+  /\b(?:please wait|countdown|wait\s+\d+\s*(?:seconds?|s))\b/i,
+  /\b(?:sign in|log in|login)\s+to\s+(?:continue|download)\b/i,
+];
+
+/** True when the page asks the visitor to do something a plain fetch cannot. */
+export function needsHumanStep(html: string): boolean {
+  return HUMAN_STEP.some((pattern) => pattern.test(html));
+}
+
 function isHtml(contentType: string | undefined): boolean {
   const type = (contentType ?? '').toLowerCase();
   return type.includes('text/html') || type.includes('application/xhtml');
+}
+
+/** Some hosts send HTML without a content type. */
+function looksLikeHtml(text: string): boolean {
+  return /^\s*</.test(text);
 }
 
 /**
@@ -40,7 +58,7 @@ export async function fetchPage(url: string, { headers, http }: ResolveContext):
 
   const res = await http.request(url, { headers: requestHeaders });
   if (res.status < 200 || res.status >= 300) return null;
-  if (!isHtml(res.headers['content-type'])) return { html: '', url: res.url };
+  if (!isHtml(res.headers['content-type']) && !looksLikeHtml(res.text)) return { html: '', url: res.url };
   return { html: res.text, url: res.url };
 }
 

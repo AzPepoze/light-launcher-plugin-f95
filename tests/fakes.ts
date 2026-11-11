@@ -17,7 +17,7 @@ export interface FakeServicesOptions {
   respond?: Responder;
   credential?: string | null;
   /** answers each browser capture; the default captures nothing */
-  capture?: (url: string) => BrowserCapture;
+  capture?: (url: string) => BrowserCapture | Promise<BrowserCapture>;
 }
 
 export interface FakeServices {

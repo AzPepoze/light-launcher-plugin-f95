@@ -48,6 +48,11 @@ describe('settings.schema.json', () => {
       requestDelayMs: 0,
       verboseLogging: false,
       browserAssistEnabled: true,
+      useExternalChrome: false,
+      downloadRoot: 'downloads',
+      gameSubfolder: true,
+      installAfterDownload: false,
+      deleteArchiveAfterInstall: false,
     });
   });
 
@@ -69,6 +74,11 @@ describe('settingsFrom', () => {
       requestDelayMs: 0,
       verboseLogging: false,
       browserAssistEnabled: true,
+      useExternalChrome: false,
+      downloadRoot: 'downloads',
+      gameSubfolder: true,
+      installAfterDownload: false,
+      deleteArchiveAfterInstall: false,
     });
   });
 
@@ -90,6 +100,11 @@ describe('settingsFrom', () => {
       requestDelayMs: 0,
       verboseLogging: false,
       browserAssistEnabled: true,
+      useExternalChrome: false,
+      downloadRoot: 'downloads',
+      gameSubfolder: true,
+      installAfterDownload: false,
+      deleteArchiveAfterInstall: false,
     });
   });
 
@@ -122,6 +137,31 @@ describe('settingsFrom', () => {
     expect(settingsFrom({}).browserAssistEnabled).toBe(true);
     expect(settingsFrom({ browserAssistEnabled: false }).browserAssistEnabled).toBe(false);
     expect(settingsFrom({ browserAssistEnabled: 'no' }).browserAssistEnabled).toBe(true);
+  });
+
+  test('the external Chrome route is off unless the host sends true', () => {
+    expect(settingsFrom({}).useExternalChrome).toBe(false);
+    expect(settingsFrom({ useExternalChrome: true }).useExternalChrome).toBe(true);
+    expect(settingsFrom({ useExternalChrome: 'yes' }).useExternalChrome).toBe(false);
+  });
+
+  test('reads the download folder choice and its switches', () => {
+    const settings = settingsFrom({
+      downloadRoot: 'games',
+      gameSubfolder: false,
+      installAfterDownload: true,
+      deleteArchiveAfterInstall: true,
+    });
+    expect(settings).toMatchObject({
+      downloadRoot: 'games',
+      gameSubfolder: false,
+      installAfterDownload: true,
+      deleteArchiveAfterInstall: true,
+    });
+  });
+
+  test('an unknown download root falls back to downloads', () => {
+    expect(settingsFrom({ downloadRoot: 'elsewhere' }).downloadRoot).toBe('downloads');
   });
 
   test('reads the platform and falls back to any for an unknown value', () => {

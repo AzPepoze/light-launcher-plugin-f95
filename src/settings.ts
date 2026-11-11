@@ -1,4 +1,6 @@
 import { DEFAULT_USER_AGENT } from '@light-launcher/plugin-sdk/helpers';
+import type { DownloadRoot } from '@light-launcher/plugin-sdk/types';
+import type { DownloadHintSettings } from './downloads/hints';
 import {
   DEFAULT_FILE_PREFERENCES,
   PLATFORM_CHOICES,
@@ -9,7 +11,7 @@ import {
 } from './downloads/preferences';
 
 /** The values the plugin reads from the host. A missing or invalid value uses its default. */
-export interface PluginSettings {
+export interface PluginSettings extends DownloadHintSettings {
   userAgent: string;
   /** null uses the usual install locations */
   browserPath: string | null;
@@ -22,7 +24,12 @@ export interface PluginSettings {
   requestDelayMs: number;
   verboseLogging: boolean;
   browserAssistEnabled: boolean;
+  /** use the plugin's own Chrome/Edge over CDP instead of the launcher's embedded browser */
+  useExternalChrome: boolean;
 }
+
+/** A settings object, or a reader called again for each download. */
+export type SettingsSource = PluginSettings | (() => PluginSettings | Promise<PluginSettings>);
 
 const HOUR_MS = 60 * 60 * 1000;
 const MAX_UPDATE_INTERVAL_HOURS = 720;
@@ -55,6 +62,10 @@ function platformSetting(raw: Record<string, unknown>, key: string): PlatformCho
   return known ? (value as PlatformChoice) : DEFAULT_FILE_PREFERENCES.preferredPlatform;
 }
 
+function downloadRootSetting(raw: Record<string, unknown>): DownloadRoot {
+  return raw.downloadRoot === 'games' ? 'games' : 'downloads';
+}
+
 function filePreferencesFrom(raw: Record<string, unknown>): FilePreferences {
   return {
     preferredHosts: hostListSetting(raw, 'preferredHosts'),
@@ -85,5 +96,16 @@ export function settingsFrom(raw: Record<string, unknown>): PluginSettings {
     requestDelayMs: requestDelaySetting(raw),
     verboseLogging: boolSetting(raw, 'verboseLogging', false),
     browserAssistEnabled: boolSetting(raw, 'browserAssistEnabled', true),
+    useExternalChrome: boolSetting(raw, 'useExternalChrome', false),
+    downloadRoot: downloadRootSetting(raw),
+    gameSubfolder: boolSetting(raw, 'gameSubfolder', true),
+    installAfterDownload: boolSetting(raw, 'installAfterDownload', false),
+    deleteArchiveAfterInstall: boolSetting(raw, 'deleteArchiveAfterInstall', false),
   };
 }
+
+/** The values the schema defaults describe. */
+export const DEFAULT_SETTINGS: Readonly<PluginSettings> = settingsFrom({});
+
+export { downloadHints, sanitizeGameFolder, safeFolderName, sanitizeFolderName, FALLBACK_GAME_FOLDER } from './downloads/hints';
+export type { DownloadHintSettings, DownloadHints } from './downloads/hints';

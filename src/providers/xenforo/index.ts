@@ -4,9 +4,13 @@ import type {
 } from '@light-launcher/plugin-sdk/types';
 import { isNewer } from '@light-launcher/plugin-sdk/helpers';
 import type { CallHooks, SourceProvider } from '@light-launcher/plugin-sdk/runtime';
-import type { PrepareDownloadResult } from '@light-launcher/plugin-sdk/types';
-import { applyFilePreferences, DEFAULT_FILE_PREFERENCES, type FilePreferences } from '../../downloads/preferences';
+import { ErrorCode, RpcFailure, type PrepareDownloadResult } from '@light-launcher/plugin-sdk/types';
+import { downloadHints } from '../../downloads/hints';
+import { withBrowserHeaders } from '../../downloads/hosts';
+import { applyFilePreferences, type FilePreferences } from '../../downloads/preferences';
+import { findResolver, resolveDownload } from '../../downloads/resolve';
 import type { HostServices } from '../../host';
+import { settingsFrom, type PluginSettings, type SettingsSource } from '../../settings';
 import type { XenForoProfile } from './profile';
 import {
   extractFileCandidates, isDownloadRedirect, parseAccountName, parseListing, parseThread, parseThreadMeta,
@@ -25,6 +29,10 @@ export interface XenForoProviderOptions {
   filePreferences?: FilePreferences;
   /** minimum time between update checks of one game; 0 checks every time */
   updateCheckIntervalMs?: number;
+  /** read on each call, so settings changes apply without a restart */
+  getSettings?: () => Promise<PluginSettings>;
+  /** another way to pass the same values, as an object or a reader */
+  settings?: SettingsSource;
 }
 
 const MAX_CACHE = 50;
@@ -85,6 +93,24 @@ export function createXenForoProvider(
   const label = options.label ?? profile.label;
   const base = profile.baseUrl.replace(/\/+$/, '');
   const loginPath = profile.auth.loginPath.replace(/\/+$/, '') || '/login';
+
+  const defaults = settingsFrom({});
+  const startupSettings: PluginSettings = {
+    ...defaults,
+    userAgent: options.userAgent ?? defaults.userAgent,
+    filePreferences: options.filePreferences ?? defaults.filePreferences,
+    updateCheckIntervalMs: options.updateCheckIntervalMs ?? defaults.updateCheckIntervalMs,
+  };
+
+  /** Settings are read again for every call, so a change applies without a restart. */
+  async function currentSettings(): Promise<PluginSettings> {
+    const loaded = options.getSettings
+      ? await options.getSettings()
+      : typeof options.settings === 'function'
+        ? await options.settings()
+        : options.settings;
+    return loaded ? { ...startupSettings, ...loaded } : startupSettings;
+  }
 
   /** The saved cookie, normalized, or null when not signed in. */
   async function savedCookie(): Promise<string | null> {
@@ -217,7 +243,8 @@ export function createXenForoProvider(
 
   async function resolveFiles(game: GameRef): Promise<FileCandidate[]> {
     const files = await listFiles(game);
-    return applyFilePreferences(files, options.filePreferences ?? DEFAULT_FILE_PREFERENCES);
+    const settings = await currentSettings();
+    return applyFilePreferences(files, settings.filePreferences);
   }
 
   /** The links the thread lists, parsed once and cached. The cache keeps the thread's order. */
@@ -233,26 +260,102 @@ export function createXenForoProvider(
     return files;
   }
 
-  /** A forum /dl/ link leads to a file host through a page that needs a real browser. */
-  async function captureRedirect(file: FileCandidate, hooks: CallHooks): Promise<PrepareDownloadResult> {
-    const captured = await services.browser.capture(file.url, {
-      signal: hooks.signal,
-      onWaiting: (message) => hooks.progress?.({ message }),
-      onProgress: (percent, message) => hooks.progress?.({ done: percent, total: 100, message }),
-    });
+  /** A failed browser assist gets a code and a plain message the launcher can show. */
+  function browserError(err: unknown): RpcFailure {
+    const message = err instanceof Error ? err.message : String(err);
+    if (/turn(?:ed)? off/i.test(message)) {
+      return new RpcFailure(
+        ErrorCode.PermissionDenied,
+        `${label}: browser assist is turned off in the plugin settings.`,
+      );
+    }
+    if ((err instanceof RpcFailure && err.code === ErrorCode.PermissionDenied) || /permission/i.test(message)) {
+      return new RpcFailure(
+        ErrorCode.PermissionDenied,
+        `${label}: the launcher did not allow a browser window for this download.`,
+      );
+    }
+    if (/clos/i.test(message)) {
+      return new RpcFailure(
+        ErrorCode.Canceled,
+        `${label}: the browser window was closed before a download link was captured.`,
+      );
+    }
+    if ((err instanceof RpcFailure && err.code === ErrorCode.Timeout) || /tim(?:e|ed)?\s*out/i.test(message)) {
+      return new RpcFailure(
+        ErrorCode.Timeout,
+        `${label}: browser assist timed out before a download link was captured.`,
+      );
+    }
+    if (err instanceof RpcFailure && err.code === ErrorCode.Canceled) {
+      return new RpcFailure(ErrorCode.Canceled, `${label}: browser assist was closed or canceled before a download link was captured.`);
+    }
+    return new RpcFailure(ErrorCode.InternalError, `${label}: browser assist failed: ${message}`);
+  }
+
+  /** Opens the embedded browser and waits for the user to finish the page's download step. */
+  async function captureRedirect(
+    file: FileCandidate,
+    game: GameRef,
+    hooks: CallHooks,
+    settings: PluginSettings,
+  ): Promise<PrepareDownloadResult> {
+    if (!settings.browserAssistEnabled) {
+      throw new RpcFailure(
+        ErrorCode.PermissionDenied,
+        `${label}: browser assist is turned off in the plugin settings, so the download link cannot be captured.`,
+      );
+    }
+    hooks.progress?.({ message: 'Use the browser window to finish the download; the launcher will catch the file.' });
+    let captured;
+    try {
+      captured = await services.browser.capture(file.url, {
+        signal: hooks.signal,
+        message: 'Finish the download step in the browser window; the launcher will catch the file.',
+        onWaiting: (message) => hooks.progress?.({ message }),
+        onProgress: (percent, message) => hooks.progress?.({ done: percent, total: 100, message }),
+      });
+    } catch (err) {
+      throw browserError(err);
+    }
     if (!captured.capturedUrl) {
-      throw new Error(`${label}: no download link was captured. Press Download File in the browser window and try again.`);
+      throw new RpcFailure(
+        ErrorCode.InternalError,
+        `${label}: no download link was captured. Use the browser window to finish the download and try again.`,
+      );
     }
     return {
       url: captured.capturedUrl,
       headers: captured.headers ?? {},
       filename: captured.filename ?? undefined,
       size: captured.size ?? undefined,
+      ...downloadHints(settings, game),
     };
   }
 
   async function prepareDownload(file: FileCandidate, game: GameRef, hooks: CallHooks = {}): Promise<PrepareDownloadResult> {
-    if (isDownloadRedirect(file.url)) return captureRedirect(file, hooks);
+    const settings = await currentSettings();
+    const hints = downloadHints(settings, game);
+    if (isDownloadRedirect(file.url)) return captureRedirect(file, game, hooks, settings);
+
+    if (findResolver(file.url)) {
+      const credentials = withBrowserHeaders(file.url, file.headers ?? {});
+      const resolved = await resolveDownload(file.url, { headers: credentials, http: services.http });
+      if (!resolved.needsHuman) {
+        return {
+          url: resolved.url,
+          headers: withBrowserHeaders(resolved.url, { ...file.headers, ...resolved.headers }),
+          filename: resolved.filename ?? file.filename ?? undefined,
+          size: resolved.size ?? file.size ?? undefined,
+          ...hints,
+        };
+      }
+      return captureRedirect(file, game, hooks, settings);
+    }
+
+    // an unsupported mirror page is as likely to need a person as a supported one
+    if (file.kind === 'mirror') return captureRedirect(file, game, hooks, settings);
+
     if (file.requiresAuth) {
       const cookie = await savedCookie();
       if (!cookie) {
@@ -263,11 +366,12 @@ export function createXenForoProvider(
         headers: {
           Cookie: cookie,
           Referer: game.url,
-          ...(options.userAgent ? { 'User-Agent': options.userAgent } : {}),
+          ...(options.userAgent ? { 'User-Agent': settings.userAgent } : {}),
         },
+        ...hints,
       };
     }
-    return { url: file.url, headers: {} };
+    return { url: file.url, headers: { ...file.headers }, ...hints };
   }
 
   /** When each game was last checked, by source id. It is kept in memory, so a restart clears it. */

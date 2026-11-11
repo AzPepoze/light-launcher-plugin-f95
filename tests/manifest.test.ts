@@ -25,6 +25,10 @@ describe('plugin.json', () => {
     expect(manifest.repository).toBe('github:AzPepoze/light-launcher-plugin-f95');
   });
 
+  test('asks for the games folder because download hints can install there', () => {
+    expect(manifest.permissions.fs).toContain('$GAMES');
+  });
+
   test('declares the sync:index capability for the thread index', () => {
     const [source] = manifest.contributes.sources;
     expect(source.capabilities).toContain('sync:index');

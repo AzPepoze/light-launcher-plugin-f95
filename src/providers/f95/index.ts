@@ -1,5 +1,6 @@
 import type { CallHooks, SourceProvider } from '@light-launcher/plugin-sdk/runtime';
 import type { SyncStatus } from '@light-launcher/plugin-sdk/types';
+import type { PluginSettings, SettingsSource } from '../../settings';
 import type { FilePreferences } from '../../downloads/preferences';
 import type { HostServices } from '../../host';
 import { indexStatus, syncThreadIndex } from '../../library/f95-index';
@@ -10,6 +11,10 @@ export interface F95ProviderOptions {
   userAgent?: string;
   filePreferences?: FilePreferences;
   updateCheckIntervalMs?: number;
+  /** read on each call, so settings changes apply without a restart */
+  getSettings?: () => Promise<PluginSettings>;
+  /** another way to pass the same values, as an object or a reader */
+  settings?: SettingsSource;
 }
 
 /**
@@ -23,6 +28,8 @@ export function createF95Provider(services: HostServices, options: F95ProviderOp
     userAgent: options.userAgent,
     filePreferences: options.filePreferences,
     updateCheckIntervalMs: options.updateCheckIntervalMs,
+    getSettings: options.getSettings,
+    settings: options.settings,
   });
   return { ...xenforo, sync: (hooks) => syncIndex(services, xenforo.id, hooks) };
 }
@@ -32,3 +39,5 @@ async function syncIndex(services: HostServices, source: string, hooks: CallHook
   await syncThreadIndex(services, source, (message) => hooks.progress?.({ message }));
   return indexStatus(services, source);
 }
+
+export { downloadHints, sanitizeGameFolder } from './downloads';

@@ -346,6 +346,8 @@ describe('provider wiring', () => {
       headers: { Cookie: 'session=abc' },
       filename: 'game.zip',
       size: 42,
+      root: 'downloads',
+      subfolder: 'My Game',
     });
   });
 

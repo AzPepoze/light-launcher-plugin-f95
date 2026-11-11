@@ -86,6 +86,14 @@ function buildServices(input: ServicesInput): HostServices {
     services: base,
     settings: { browserPath: settings.browserPath, userAgent: settings.userAgent },
     enabled: settings.browserAssistEnabled,
+    useExternalChrome: settings.useExternalChrome,
+    getRoute: async () => {
+      const current = await readSettings(ctx, log);
+      return {
+        browserAssistEnabled: current.browserAssistEnabled,
+        useExternalChrome: current.useExternalChrome,
+      };
+    },
   });
   return { ...base, browser };
 }
@@ -111,6 +119,7 @@ async function startPlugin(params: InitializeParams, ctx: PluginContext, events:
     userAgent: settings.userAgent,
     filePreferences: settings.filePreferences,
     updateCheckIntervalMs: settings.updateCheckIntervalMs,
+    getSettings: () => readSettings(ctx, log),
   });
   log('info', `ready (${manifest.name} ${manifest.version})`);
   return { services, provider };

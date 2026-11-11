@@ -41,7 +41,7 @@
       "mega.nz",
       "*.mega.co.nz"
     ],
-    "fs": [],
+    "fs": ["$GAMES"],
     "secrets": true,
     "browser": true,
     "exec": false

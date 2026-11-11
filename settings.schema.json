@@ -24,6 +24,36 @@
       "default": "any",
       "x-ll-group": "Downloads"
     },
+    "downloadRoot": {
+      "type": "string",
+      "title": "Save downloads into",
+      "description": "The launcher's downloads folder, or its games folder.",
+      "enum": ["downloads", "games"],
+      "default": "downloads",
+      "x-ll-group": "Downloads"
+    },
+    "gameSubfolder": {
+      "type": "boolean",
+      "title": "Put each game in its own folder",
+      "description": "Make a folder named after the game inside the download folder.",
+      "default": true,
+      "x-ll-group": "Downloads"
+    },
+    "installAfterDownload": {
+      "type": "boolean",
+      "title": "Unpack the archive after download",
+      "description": "Unpack the downloaded archive into the games folder.",
+      "default": false,
+      "x-ll-group": "Downloads"
+    },
+    "deleteArchiveAfterInstall": {
+      "type": "boolean",
+      "title": "Delete the archive after install",
+      "description": "Remove the archive once it has been unpacked. Only applies when unpacking is on.",
+      "default": false,
+      "x-ll-group": "Downloads",
+      "x-ll-advanced": true
+    },
     "updateCheckIntervalHours": {
       "type": "number",
       "title": "Update check interval (hours)",
@@ -57,10 +87,18 @@
       "default": true,
       "x-ll-group": "Browser"
     },
+    "useExternalChrome": {
+      "type": "boolean",
+      "title": "Use external Chrome (old route)",
+      "description": "Open the plugin's own Chrome, Edge or Chromium window instead of the launcher's embedded browser. This is the old route and needs Chrome or Edge installed.",
+      "default": false,
+      "x-ll-group": "Browser",
+      "x-ll-advanced": true
+    },
     "browserPath": {
       "type": "string",
       "title": "Browser program",
-      "description": "The Chrome, Edge or Chromium program used for browser assist. Leave empty to use the usual install locations.",
+      "description": "The Chrome, Edge or Chromium program used by the old external browser route. Leave empty to use the usual install locations.",
       "default": "",
       "x-ll-group": "Browser",
       "x-ll-widget": "file",

@@ -97,18 +97,16 @@ describe('createBrowserAssist', () => {
     expect(secondWaiting).toEqual([`waiting for ${PAGE}other/`]);
   });
 
-  test('falls back to the local browser once when the host has no browser.assist', async () => {
+  test('does not fall back to the local browser when the host has no browser.assist', async () => {
     const events = new BrowserEvents();
     const { host, calls } = fakeHost(async () => {
       throw new RpcFailure(ErrorCode.MethodNotFound, 'method not found: browser.assist');
     });
-    const { services, logs } = fakeServices();
+    const { services } = fakeServices();
     const assist = createBrowserAssist({ hostGranted: true, host, events, services, settings: NO_BROWSER });
 
-    await expect(assist.capture(PAGE)).rejects.toThrow('browser assist needs Google Chrome');
-    await expect(assist.capture(PAGE)).rejects.toThrow('browser assist needs Google Chrome');
+    await expect(assist.capture(PAGE)).rejects.toThrow('method not found');
     expect(calls).toEqual([PAGE]);
-    expect(logs.filter((line) => line.includes('no browser.assist'))).toHaveLength(1);
   });
 
   test('refuses every capture without starting a browser when turned off', async () => {
@@ -128,8 +126,36 @@ describe('createBrowserAssist', () => {
     const { services } = fakeServices();
     const assist = createBrowserAssist({ hostGranted: false, host, events, services, settings: NO_BROWSER });
 
+    await expect(assist.capture(PAGE)).rejects.toThrow('needs the browser permission');
+    expect(calls).toEqual([]);
+  });
+
+  test('uses the old local Chrome route only when useExternalChrome is true', async () => {
+    const events = new BrowserEvents();
+    const { host, calls } = fakeHost(async () => ({ capturedUrl: 'https://example.com/x' }));
+    const { services } = fakeServices();
+    const assist = createBrowserAssist({
+      hostGranted: true, host, events, services, settings: NO_BROWSER, useExternalChrome: true,
+    });
+
     await expect(assist.capture(PAGE)).rejects.toThrow('browser assist needs Google Chrome');
     expect(calls).toEqual([]);
+  });
+
+  test('reads the route again for each capture', async () => {
+    const events = new BrowserEvents();
+    const { host, calls } = fakeHost(async () => ({ capturedUrl: 'https://example.com/x' }));
+    const { services } = fakeServices();
+    let external = false;
+    const assist = createBrowserAssist({
+      hostGranted: true, host, events, services, settings: NO_BROWSER,
+      getRoute: async () => ({ browserAssistEnabled: true, useExternalChrome: external }),
+    });
+
+    await expect(assist.capture(PAGE)).resolves.toMatchObject({ capturedUrl: 'https://example.com/x' });
+    external = true;
+    await expect(assist.capture(PAGE)).rejects.toThrow('browser assist needs Google Chrome');
+    expect(calls).toEqual([PAGE]);
   });
 
   test('keeps other host errors instead of falling back', async () => {
