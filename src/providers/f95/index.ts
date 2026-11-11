@@ -39,5 +39,3 @@ async function syncIndex(services: HostServices, source: string, hooks: CallHook
   await syncThreadIndex(services, source, (message) => hooks.progress?.({ message }));
   return indexStatus(services, source);
 }
-
-export { downloadHints, sanitizeGameFolder } from './downloads';

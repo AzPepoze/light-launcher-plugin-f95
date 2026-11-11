@@ -5,7 +5,7 @@ import type {
 import { isNewer } from '@light-launcher/plugin-sdk/helpers';
 import type { CallHooks, SourceProvider } from '@light-launcher/plugin-sdk/runtime';
 import { ErrorCode, RpcFailure, type PrepareDownloadResult } from '@light-launcher/plugin-sdk/types';
-import { downloadHints } from '../../downloads/hints';
+import { downloadHints } from '@light-launcher/plugin-sdk';
 import { withBrowserHeaders } from '../../downloads/hosts';
 import { applyFilePreferences, type FilePreferences } from '../../downloads/preferences';
 import { findResolver, resolveDownload } from '../../downloads/resolve';

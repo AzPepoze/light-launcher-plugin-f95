@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import fs from 'node:fs';
 import Ajv2020 from 'ajv/dist/2020';
 import { DEFAULT_USER_AGENT } from '@light-launcher/plugin-sdk/helpers';
+import { downloadSettingsSchemaProperties } from '@light-launcher/plugin-sdk';
 import manifest from '../plugin.json';
 import settingsSchema from '../settings.schema.json';
 import { settingsFrom } from '../src/settings';
@@ -13,6 +14,17 @@ function defaultsOf(schema: { properties: Record<string, { default?: unknown }> 
     if (property.default !== undefined) out[key] = property.default;
   }
   return out;
+}
+
+/** The fields that decide what a setting is. Wording (title, description) may differ. */
+function structuralFieldsOf(property: Record<string, unknown> | undefined) {
+  return {
+    type: property?.type,
+    enum: property?.enum,
+    default: property?.default,
+    group: property?.['x-ll-group'],
+    advanced: property?.['x-ll-advanced'],
+  };
 }
 
 describe('settings.schema.json', () => {
@@ -54,6 +66,13 @@ describe('settings.schema.json', () => {
       installAfterDownload: false,
       deleteArchiveAfterInstall: false,
     });
+  });
+
+  test('its download settings match the SDK download settings schema', () => {
+    const properties = settingsSchema.properties as Record<string, Record<string, unknown>>;
+    for (const [key, sdkProperty] of Object.entries(downloadSettingsSchemaProperties)) {
+      expect({ key, ...structuralFieldsOf(properties[key]) }).toEqual({ key, ...structuralFieldsOf(sdkProperty) });
+    }
   });
 
   test('accepts a complete set of values and rejects unknown keys', () => {
