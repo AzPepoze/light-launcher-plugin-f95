@@ -1,0 +1,163 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: build release files
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: plugin
+    steps:
+      - name: Check out the plugin
+        uses: actions/checkout@v4
+        with:
+          path: plugin
+          fetch-depth: 0
+          fetch-tags: true
+
+      # The SDK is a file: dependency, so its repo must sit next to the plugin.
+      - name: Check out the SDK
+        uses: actions/checkout@v4
+        with:
+          repository: AzPepoze/light-launcher-plugin-sdk
+          path: light-launcher-plugin-sdk
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Check the tag matches plugin.json
+        run: |
+          version=$(bun -e 'const manifest = await Bun.file("plugin.json").json(); console.log(manifest.version)')
+          id=$(bun -e 'const manifest = await Bun.file("plugin.json").json(); console.log(manifest.id)')
+          tag="${GITHUB_REF_NAME#v}"
+          if [[ "$tag" != "$version" ]]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match plugin.json version $version"
+            exit 1
+          fi
+          echo "PLUGIN_ID=$id" >> "$GITHUB_ENV"
+          echo "PLUGIN_VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Build Linux
+        run: bun run build:linux
+
+      - name: Build Windows
+        run: bun run build:windows
+
+      - name: Pack
+        run: bunx llp pack . --out dist
+
+      - name: Check the package name
+        run: test -f "dist/${PLUGIN_ID}-${PLUGIN_VERSION}.llplugin"
+
+      - name: Write SHA256SUMS
+        run: |
+          cd dist
+          packages=(*.llplugin)
+          if (( ${#packages[@]} != 1 )); then
+            echo "::error::expected 1 package, found ${#packages[@]}"
+            exit 1
+          fi
+          sha256sum "${packages[0]}" > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Sign the package
+        env:
+          PLUGIN_SIGNING_KEY: ${{ secrets.PLUGIN_SIGNING_KEY }}
+        run: |
+          if [[ -z "$PLUGIN_SIGNING_KEY" ]]; then
+            echo "PLUGIN_SIGNING_KEY is not set; the release stays unsigned."
+            exit 0
+          fi
+          echo "::notice::PLUGIN_SIGNING_KEY is set, but llp has no sign command yet; the release stays unsigned."
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release
+          path: |
+            plugin/dist/*.llplugin
+            plugin/dist/SHA256SUMS
+          if-no-files-found: error
+
+  publish:
+    name: publish release
+    needs: [build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: release
+          path: release
+
+      - name: Generate release notes
+        run: |
+          previous=$(git tag --sort=-v:refname | grep -vx "$GITHUB_REF_NAME" | head -n 1)
+          range="$GITHUB_REF_NAME"
+          if [[ -n "$previous" ]]; then
+            range="$previous..$GITHUB_REF_NAME"
+          fi
+
+          declare -A titles=(
+            [feat]="Features" [fix]="Fixes" [perf]="Performance" [refactor]="Refactoring"
+            [docs]="Documentation" [test]="Tests" [build]="Build" [ci]="CI" [chore]="Chores"
+            [other]="Other"
+          )
+          declare -A entries=()
+          pattern='^([a-z]+)(\([^)]*\))?!?: (.*)$'
+
+          while IFS= read -r subject; do
+            if [[ "$subject" =~ $pattern ]]; then
+              type="${BASH_REMATCH[1]}"
+              text="${BASH_REMATCH[3]}"
+            else
+              type="other"
+              text="$subject"
+            fi
+            entries[$type]+="- ${text}"$'\n'
+          done < <(git log "$range" --no-merges --pretty=tformat:'%s')
+
+          notes="$RUNNER_TEMP/release-notes.md"
+          {
+            echo "Changes in $GITHUB_REF_NAME."
+            for type in feat fix perf refactor docs test build ci chore other; do
+              [[ -n "${entries[$type]:-}" ]] || continue
+              echo
+              echo "### ${titles[$type]}"
+              echo
+              printf '%s' "${entries[$type]}"
+            done
+          } > "$notes"
+          cat "$notes"
+
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --verify-tag \
+            --title "$GITHUB_REF_NAME" \
+            --notes-file "$RUNNER_TEMP/release-notes.md" \
+            release/*
