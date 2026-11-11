@@ -25,7 +25,7 @@ The message shapes come from the Light Launcher plugin SDK (`@light-launcher/plu
 | `source.search` | `{ source, url?, query?, page? }` | `{ games }` |
 | `source.fetchGame` | `{ source, ref }` | `{ game }` |
 | `source.resolveFiles` | `{ source, game }` | `{ files }` |
-| `source.prepareDownload` | `{ source, file, game }` | `{ url, headers }` |
+| `source.prepareDownload` | `{ source, file, game }` | `{ url, headers, filename?, size?, root?, subfolder?, install?, installSubfolder?, deleteArchive? }` |
 | `source.checkUpdate` | `{ source, game }` | `{ update }`, or null when nothing is newer |
 | `source.sync` | `{ source }` | `{ count, syncedAt, running }` after the thread index is rebuilt |
 | `shutdown` | none | null. The plugin then exits. |
@@ -49,8 +49,8 @@ The launcher never sends the cookie in `initialize`. See [Sign in](install.md#si
 | `secrets.get` | First use after start | Reads the cookie, key `cookie` |
 | `secrets.set` | After `source.setCredential` works | Saves the cookie |
 | `secrets.delete` | After `source.clearCredential` | Removes the cookie |
-| `settings.get` | Once, in `initialize` | Reads the [settings](settings.md). Defaults apply if the host cannot answer |
-| `browser.assist` | `source.prepareDownload` for an F95 `/dl/` link, when the browser permission is granted | Opens a browser and catches the file link. See [Browser assist](#browser-assist) |
+| `settings.get` | In `initialize`, and for each download | Reads the [settings](settings.md). Defaults apply if the host cannot answer |
+| `browser.assist` | `source.prepareDownload` when a file host needs a person, and the embedded route is on | Opens a window where you do the step, then catches the file link. See [Browser assist](#browser-assist) |
 
 > [!NOTE]
 > The plugin fetches forum pages itself. It does not use `http.request`.
@@ -66,19 +66,39 @@ The launcher never sends the cookie in `initialize`. See [Sign in](install.md#si
 
 ## Browser assist
 
-The plugin needs a browser to catch the download link behind an F95 `/dl/` page.
-The browser comes from the launcher or from the plugin.
+Some file-host pages need a person: a timer, a login, a captcha or a download button.
+The plugin does not click or fill these pages. It asks the launcher to show the page, and
+you do the step in the window. The launcher observes the download and returns the caught
+link. The plugin sends a short message for the window, so you know what to do there.
 
 | Situation | Browser used |
 |---|---|
-| The launcher granted the `browser` permission | The launcher's `browser.assist` |
-| The launcher answers "method not found" | The plugin's local browser, for the rest of the run |
-| The permission was not granted | The plugin's local browser |
+| `useExternalChrome` is off (default) | The launcher's embedded window through `browser.assist` |
+| `useExternalChrome` is on | The plugin's own Chrome, Edge or Chromium window over CDP (the old route) |
+| `browserAssistEnabled` is off | No window. The download fails with a clear message |
 
 > [!NOTE]
-> The local browser needs Google Chrome, Microsoft Edge or Chromium installed.
-> A capture from the launcher returns no cookie headers. The local browser returns the
+> The old external route needs Google Chrome, Microsoft Edge or Chromium installed. Set
+> `browserPath` to choose the program; an empty value uses the usual install locations.
+> A capture from the embedded window returns no cookie headers. The old route returns the
 > cookies the download needs.
+
+## Download hints
+
+`source.prepareDownload` may return these fields next to `url` and `headers`:
+
+| Field | Meaning |
+|---|---|
+| `root` | `downloads` (default) or `games` |
+| `subfolder` | Folder under `root`, such as `My Game` |
+| `install` | Unpack the archive after the download |
+| `installSubfolder` | Folder under the games folder for the installed game. Needs `install` |
+| `deleteArchive` | Delete the archive after a good install. Needs `install` |
+
+> [!IMPORTANT]
+> The launcher only has the downloads and games roots. A plugin chooses a root and a
+> subfolder, not an absolute folder. `root: "games"` and `install` need the `$GAMES` fs
+> permission. The launcher checks the path and queues the file itself.
 
 ## Errors
 
@@ -88,3 +108,6 @@ The browser comes from the launcher or from the plugin.
 | -32601 | Unknown method |
 | -32602 | Missing or wrong params |
 | -32603 | The plugin failed. The message says why. |
+| -32001 | The download needs a permission, such as browser assist |
+| -32002 | The browser window was closed, or the request was canceled |
+| -32003 | Browser assist timed out before it caught a link |

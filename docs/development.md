@@ -9,6 +9,7 @@
 | `bun install` | Installs packages |
 | `bun test` | Runs the tests |
 | `bun run typecheck` | Checks types without writing files |
+| `bun run validate` | Checks `plugin.json` and the settings form |
 | `bun run build:linux` | Builds `bin/linux-x64/f95` |
 | `bun run build:windows` | Builds `bin/windows-x64/f95.exe` |
 
@@ -54,7 +55,9 @@ Tests use in-memory fakes from `tests/fakes.ts`. They do not contact F95 Zone or
 | `manifest.test.ts` | `plugin.json` against the SDK schema (skipped when `ajv` is missing) |
 | `stdio.test.ts` | Runs the plugin over stdio: initialize, parseRef, authStatus, shutdown |
 | `profile.test.ts` | The profile overlay in the data folder |
-| `browser-assist.test.ts` | Host or local browser choice |
+| `browser-assist.test.ts` | Embedded browser or old local Chrome route |
+| `download-assist.test.ts` | Resolver success and browser-assist fallback |
+| `download-hints.test.ts` | Download hints and safe game folder names |
 
 To run the stdio test against the built binary:
 

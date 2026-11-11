@@ -35,6 +35,34 @@ It runs as a separate program. The launcher starts it, talks to it over stdin an
 | 3. Build for Linux | `bun run build:linux` |
 | 4. Build for Windows | `bun run build:windows` |
 
+## Downloads and browser help
+
+| Setting | Default | What it does |
+|---|---|---|
+| Save downloads into | downloads folder | Chooses the launcher's downloads folder or its games folder |
+| Put each game in its own folder | on | Adds a safe folder named after the game title |
+| Unpack the archive after download | off | Asks the launcher to unpack after the download |
+| Delete the archive after install | off | Removes the archive after a good unpack |
+| Browser assist | on | Opens a browser for pages that need a person |
+| Use external Chrome (old route) | off | Uses the plugin's own Chrome or Edge over CDP instead of the launcher's embedded browser |
+
+The launcher only has two download roots, so the plugin chooses a root and a subfolder,
+never an absolute folder. See [Settings](docs/settings.md#where-downloads-go).
+
+Some file hosts need a timer, login, captcha or button before they give the file. The
+plugin never clicks or fills that page. It asks the launcher to open an embedded window,
+you do the step, and the launcher catches the download. The old external Chrome route is
+still available with `useExternalChrome`; it needs Chrome, Edge or Chromium installed.
+
+## Permissions
+
+| Permission | Why |
+|---|---|
+| `network` | Reads F95 Zone and the supported file hosts |
+| `fs` `$GAMES` | Download hints can save into the games folder or unpack there |
+| `secrets` | Stores your F95 session cookie |
+| `browser` | Opens the embedded browser window for a page that needs a person |
+
 ## More
 
 | Topic | Page |
