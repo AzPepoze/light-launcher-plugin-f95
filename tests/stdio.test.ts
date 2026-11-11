@@ -123,4 +123,27 @@ describe('stdio', () => {
       fs.rmSync(dataDir, { recursive: true, force: true });
     }
   }, 20_000);
+
+  test('source.parseRef takes only url, as the protocol schema says', async () => {
+    const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'f95-stdio-'));
+    const host = new StdioHost({});
+    try {
+      await host.request('initialize', {
+        hostVersion: '2.0.0',
+        apiVersion: '1',
+        platform: 'linux',
+        grantedPermissions: { network: [], fs: [], secrets: false, browser: false, exec: false },
+        dataDir,
+      });
+      const url = 'https://f95zone.to/threads/my-game.12345/';
+      await expect(host.request('source.parseRef', { url, source: 'f95' })).rejects.toThrow(
+        'invalid params for source.parseRef',
+      );
+      expect(await host.request('source.parseRef', { url })).toMatchObject({ kind: 'game', id: '12345' });
+      expect(await host.request('shutdown', {})).toBeNull();
+    } finally {
+      host.proc.kill();
+      fs.rmSync(dataDir, { recursive: true, force: true });
+    }
+  }, 20_000);
 });
