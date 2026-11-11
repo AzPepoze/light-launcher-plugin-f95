@@ -44,6 +44,7 @@ describe('settings.schema.json', () => {
       browserPath: null,
       dumpDir: null,
       filePreferences: { preferredHosts: [], preferredPlatform: 'any' },
+      updateCheckIntervalMs: 0,
     });
   });
 
@@ -61,6 +62,7 @@ describe('settingsFrom', () => {
       browserPath: null,
       dumpDir: null,
       filePreferences: { preferredHosts: [], preferredPlatform: 'any' },
+      updateCheckIntervalMs: 0,
     });
   });
 
@@ -78,12 +80,21 @@ describe('settingsFrom', () => {
       browserPath: null,
       dumpDir: null,
       filePreferences: { preferredHosts: [], preferredPlatform: 'any' },
+      updateCheckIntervalMs: 0,
     });
   });
 
   test('keeps the order of the preferred hosts and drops unknown and repeated names', () => {
     const { filePreferences } = settingsFrom({ preferredHosts: ['mega', 'nope', 'pixeldrain', 'mega', 7] });
     expect(filePreferences.preferredHosts).toEqual(['mega', 'pixeldrain']);
+  });
+
+  test('reads the update interval in hours as milliseconds and keeps it in range', () => {
+    const hour = 60 * 60 * 1000;
+    expect(settingsFrom({ updateCheckIntervalHours: 6 }).updateCheckIntervalMs).toBe(6 * hour);
+    expect(settingsFrom({ updateCheckIntervalHours: -3 }).updateCheckIntervalMs).toBe(0);
+    expect(settingsFrom({ updateCheckIntervalHours: 10_000 }).updateCheckIntervalMs).toBe(720 * hour);
+    expect(settingsFrom({ updateCheckIntervalHours: 'soon' }).updateCheckIntervalMs).toBe(0);
   });
 
   test('reads the platform and falls back to any for an unknown value', () => {

@@ -23,6 +23,8 @@ export interface XenForoProviderOptions {
   userAgent?: string;
   /** host and platform choices applied to the links resolveFiles returns */
   filePreferences?: FilePreferences;
+  /** minimum time between update checks of one game; 0 checks every time */
+  updateCheckIntervalMs?: number;
 }
 
 const MAX_CACHE = 50;
@@ -268,7 +270,24 @@ export function createXenForoProvider(
     return { url: file.url, headers: {} };
   }
 
+  /** When each game was last checked, by source id. It is kept in memory, so a restart clears it. */
+  const lastUpdateCheck = new Map<string, number>();
+
+  function isInsideUpdateInterval(game: GameRef): boolean {
+    const interval = options.updateCheckIntervalMs ?? 0;
+    const last = lastUpdateCheck.get(game.sourceId);
+    return interval > 0 && last !== undefined && Date.now() - last < interval;
+  }
+
+  /** Inside the interval the thread is not fetched and no update is reported. */
   async function checkUpdate(game: GameRef): Promise<UpdateInfo | null> {
+    if (isInsideUpdateInterval(game)) return null;
+    const update = await fetchUpdate(game);
+    lastUpdateCheck.set(game.sourceId, Date.now());
+    return update;
+  }
+
+  async function fetchUpdate(game: GameRef): Promise<UpdateInfo | null> {
     const res = await services.http.request(game.url, { cacheKey: game.url, headers: await cookieHeaders() });
     if (res.notModified) return null;
     if (res.status >= 400) throw new Error(`${sourceId}: ${refusedMessage(res.status, game.url)}`);

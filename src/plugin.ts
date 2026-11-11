@@ -102,6 +102,7 @@ async function startPlugin(params: InitializeParams, ctx: PluginContext, events:
     profile,
     userAgent: settings.userAgent,
     filePreferences: settings.filePreferences,
+    updateCheckIntervalMs: settings.updateCheckIntervalMs,
   });
   log('info', `ready (${manifest.name} ${manifest.version})`);
   return { services, provider };

@@ -24,6 +24,15 @@
       "default": "any",
       "x-ll-group": "Downloads"
     },
+    "updateCheckIntervalHours": {
+      "type": "number",
+      "title": "Update check interval (hours)",
+      "description": "The least time between update checks of the same game. 0 checks every time. Inside the interval the plugin does not contact F95 Zone and reports no update. The timer starts again when the plugin restarts.",
+      "minimum": 0,
+      "maximum": 720,
+      "default": 0,
+      "x-ll-group": "Updates"
+    },
     "userAgent": {
       "type": "string",
       "title": "Browser identity",

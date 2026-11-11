@@ -16,7 +16,12 @@ export interface PluginSettings {
   /** null turns off dumps of pages that fail to parse */
   dumpDir: string | null;
   filePreferences: FilePreferences;
+  /** 0 checks every time */
+  updateCheckIntervalMs: number;
 }
+
+const HOUR_MS = 60 * 60 * 1000;
+const MAX_UPDATE_INTERVAL_HOURS = 720;
 
 function textSetting(raw: Record<string, unknown>, key: string): string | null {
   const value = raw[key];
@@ -47,11 +52,19 @@ function filePreferencesFrom(raw: Record<string, unknown>): FilePreferences {
   };
 }
 
+/** Hours in the setting, kept between 0 and the schema maximum, as milliseconds. */
+function updateIntervalMsSetting(raw: Record<string, unknown>): number {
+  const value = raw.updateCheckIntervalHours;
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 0;
+  return Math.min(Math.max(value, 0), MAX_UPDATE_INTERVAL_HOURS) * HOUR_MS;
+}
+
 export function settingsFrom(raw: Record<string, unknown>): PluginSettings {
   return {
     userAgent: textSetting(raw, 'userAgent') ?? DEFAULT_USER_AGENT,
     browserPath: textSetting(raw, 'browserPath'),
     dumpDir: textSetting(raw, 'dumpDir'),
     filePreferences: filePreferencesFrom(raw),
+    updateCheckIntervalMs: updateIntervalMsSetting(raw),
   };
 }

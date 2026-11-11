@@ -9,6 +9,7 @@ export interface F95ProviderOptions {
   profile: XenForoProfile;
   userAgent?: string;
   filePreferences?: FilePreferences;
+  updateCheckIntervalMs?: number;
 }
 
 /**
@@ -21,6 +22,7 @@ export function createF95Provider(services: HostServices, options: F95ProviderOp
     label: 'F95 Zone',
     userAgent: options.userAgent,
     filePreferences: options.filePreferences,
+    updateCheckIntervalMs: options.updateCheckIntervalMs,
   });
   return { ...xenforo, sync: (hooks) => syncIndex(services, xenforo.id, hooks) };
 }
