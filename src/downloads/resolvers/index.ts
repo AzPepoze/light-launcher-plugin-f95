@@ -8,7 +8,7 @@ import { MixDropHost } from './mixdrop';
 import { PixelDrainHost } from './pixeldrain';
 import { WorkUploadHost } from './workupload';
 
-export type { FileHostResolver, ResolvedDownload } from './base';
+export type { FileHostResolver, ResolveContext, ResolvedDownload } from './base';
 
 const RESOLVERS: readonly FileHostResolver[] = [
   new PixelDrainHost(),

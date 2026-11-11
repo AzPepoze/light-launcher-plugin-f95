@@ -1,13 +1,12 @@
 import { DEFAULT_USER_AGENT, load } from '@light-launcher/plugin-sdk/helpers';
 import { hostOf } from '../hosts';
+import type { ResolveContext } from './base';
 
 export interface FetchedPage {
   html: string;
   /** final URL after redirects */
   url: string;
 }
-
-const PAGE_TIMEOUT_MS = 30_000;
 
 function isForumHost(host: string): boolean {
   return host === 'f95zone.to' || host.endsWith('.f95zone.to');
@@ -23,23 +22,26 @@ function scopedHeaders(url: string, headers: Record<string, string>): Record<str
   return { 'User-Agent': DEFAULT_USER_AGENT, ...out };
 }
 
-/** Returns the page HTML, or an empty string when the URL is already a file. */
-export async function fetchPage(url: string, headers: Record<string, string>): Promise<FetchedPage | null> {
-  const res = await fetch(url, {
-    headers: scopedHeaders(url, headers),
-    redirect: 'follow',
-    signal: AbortSignal.timeout(PAGE_TIMEOUT_MS),
-  });
-  if (!res.ok) {
-    await res.body?.cancel().catch(() => {});
-    return null;
+function isHtml(contentType: string | undefined): boolean {
+  const type = (contentType ?? '').toLowerCase();
+  return type.includes('text/html') || type.includes('application/xhtml');
+}
+
+/**
+ * Returns the page HTML, or an empty string when the URL is already a file.
+ * A HEAD request checks the type first, so a large file is never downloaded into memory.
+ */
+export async function fetchPage(url: string, { headers, http }: ResolveContext): Promise<FetchedPage | null> {
+  const requestHeaders = scopedHeaders(url, headers);
+  const head = await http.request(url, { method: 'HEAD', headers: requestHeaders, allowStatus: [405] });
+  if (head.status < 400 && head.headers['content-type'] && !isHtml(head.headers['content-type'])) {
+    return { html: '', url: head.url };
   }
-  const type = (res.headers.get('content-type') ?? '').toLowerCase();
-  if (!type.includes('text/html') && !type.includes('application/xhtml')) {
-    await res.body?.cancel().catch(() => {});
-    return { html: '', url: res.url };
-  }
-  return { html: await res.text(), url: res.url };
+
+  const res = await http.request(url, { headers: requestHeaders });
+  if (res.status < 200 || res.status >= 300) return null;
+  if (!isHtml(res.headers['content-type'])) return { html: '', url: res.url };
+  return { html: res.text, url: res.url };
 }
 
 function absolute(base: string, href: string | undefined): string | null {

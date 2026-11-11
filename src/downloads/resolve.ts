@@ -1,4 +1,4 @@
-import { findResolver, type ResolvedDownload } from './resolvers';
+import { findResolver, type ResolveContext, type ResolvedDownload } from './resolvers';
 
 export type { ResolvedDownload } from './resolvers';
 
@@ -19,10 +19,7 @@ function remember(url: string, value: ResolvedDownload) {
  * Turn a file-host page into a direct download URL.
  * F95's /dl/ links are handled by browser assist, not here.
  */
-export async function resolveDownload(
-  url: string,
-  headers: Record<string, string> = {},
-): Promise<ResolvedDownload> {
+export async function resolveDownload(url: string, context: ResolveContext): Promise<ResolvedDownload> {
   const resolver = findResolver(url);
   if (!resolver) return { url };
 
@@ -31,7 +28,7 @@ export async function resolveDownload(
 
   let value: ResolvedDownload;
   try {
-    value = (await resolver.resolve(url, headers)) ?? { url };
+    value = (await resolver.resolve(url, context)) ?? { url };
   } catch (err) {
     if (!resolver.failsOpen) throw err;
     // a resolver failure is not fatal: the normal probe can still try the original URL

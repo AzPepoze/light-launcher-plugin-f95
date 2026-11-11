@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { sameSiteHost, withBrowserHeaders } from '../src/downloads/hosts';
 import { resolveDownload } from '../src/downloads/resolve';
+import { fakeServices } from './fakes';
 
 describe('withBrowserHeaders', () => {
   test('keeps the browser Cookie for the same non-forum URL', () => {
@@ -31,7 +32,7 @@ describe('download host safety', () => {
   test('resolveDownload does not mistake a lookalike host for a supported one', async () => {
     // a supported host would be fetched here; the lookalike must pass straight through
     const url = 'https://evilmediafire.com/file.zip';
-    const resolved = await resolveDownload(url);
+    const resolved = await resolveDownload(url, { headers: {}, http: fakeServices().services.http });
     expect(resolved.url).toBe(url);
   });
 });

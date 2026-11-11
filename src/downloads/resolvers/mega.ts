@@ -1,4 +1,4 @@
-import { FileHostResolver, type ResolvedDownload } from './base';
+import { FileHostResolver, type ResolveContext, type ResolvedDownload } from './base';
 import { parseMegaLink, resolveMega } from '../mega';
 
 /** MEGA file links are decrypted here; folder links are not supported. */
@@ -11,10 +11,10 @@ export class MegaHost extends FileHostResolver {
     return parseMegaLink(url) !== null;
   }
 
-  async resolve(url: string): Promise<ResolvedDownload | null> {
+  async resolve(url: string, { http }: ResolveContext): Promise<ResolvedDownload | null> {
     const link = parseMegaLink(url);
     if (!link) return null;
-    const file = await resolveMega(link);
+    const file = await resolveMega(link, http);
     return {
       url: file.url,
       filename: file.filename,

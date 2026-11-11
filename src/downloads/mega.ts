@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import { pipeline } from 'node:stream/promises';
-import { DEFAULT_USER_AGENT } from '@light-launcher/plugin-sdk/helpers';
+import { DEFAULT_USER_AGENT, type HttpClient } from '@light-launcher/plugin-sdk/helpers';
 
 const API_URL = 'https://g.api.mega.co.nz/cs';
 const API_TIMEOUT_MS = 30_000;
@@ -71,15 +71,15 @@ export function decryptName(attributes: string, aesKey: Buffer): string {
 }
 
 /** Asks the MEGA API for the temporary download URL, size and name of one file. */
-export async function resolveMega(link: MegaLink): Promise<MegaFile> {
-  const res = await fetch(`${API_URL}?id=${Math.floor(Math.random() * 1e9)}`, {
+export async function resolveMega(link: MegaLink, http: HttpClient): Promise<MegaFile> {
+  const res = await http.request(`${API_URL}?id=${Math.floor(Math.random() * 1e9)}`, {
     method: 'POST',
     headers: { 'User-Agent': DEFAULT_USER_AGENT, 'Content-Type': 'application/json' },
     body: JSON.stringify([{ a: 'g', g: 1, p: link.handle }]),
-    signal: AbortSignal.timeout(API_TIMEOUT_MS),
+    timeoutMs: API_TIMEOUT_MS,
   });
-  if (!res.ok) throw new Error(`MEGA API returned ${res.status}`);
-  const body = (await res.json()) as unknown;
+  if (res.status < 200 || res.status >= 300) throw new Error(`MEGA API returned ${res.status}`);
+  const body = JSON.parse(res.text) as unknown;
   const first = Array.isArray(body) ? body[0] : body;
   if (typeof first === 'number') throw new Error(megaErrorMessage(first));
   const reply = first as { g?: unknown; s?: unknown; at?: unknown };

@@ -1,6 +1,13 @@
+import type { HttpClient } from '@light-launcher/plugin-sdk/helpers';
 import type { MegaCipherKey } from '../mega';
 import { hostOf } from '../hosts';
 import { fetchPage, firstLink, genericDownloadLink } from './page';
+
+/** Everything a resolver needs to reach the network through the host. */
+export interface ResolveContext {
+  headers: Record<string, string>;
+  http: HttpClient;
+}
 
 export interface ResolvedDownload {
   url: string;
@@ -24,15 +31,15 @@ export abstract class FileHostResolver {
   }
 
   /** Returns the direct download, or null to keep the original URL. */
-  abstract resolve(url: string, headers: Record<string, string>): Promise<ResolvedDownload | null>;
+  abstract resolve(url: string, context: ResolveContext): Promise<ResolvedDownload | null>;
 }
 
 /** A host whose page links to the real file through a selector. */
 export abstract class PageFileHost extends FileHostResolver {
   protected abstract readonly selector: string;
 
-  async resolve(url: string, headers: Record<string, string>): Promise<ResolvedDownload | null> {
-    const page = await fetchPage(url, headers);
+  async resolve(url: string, context: ResolveContext): Promise<ResolvedDownload | null> {
+    const page = await fetchPage(url, context);
     if (!page) return null;
     // the URL already points at the file
     if (!page.html) return { url: page.url };
