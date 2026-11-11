@@ -21,6 +21,10 @@ describe('plugin.json', () => {
     expect(problems).toEqual([]);
   });
 
+  test('declares the GitHub repository', () => {
+    expect(manifest.repository).toBe('github:AzPepoze/light-launcher-plugin-f95');
+  });
+
   test('declares the sync:index capability for the thread index', () => {
     const [source] = manifest.contributes.sources;
     expect(source.capabilities).toContain('sync:index');
