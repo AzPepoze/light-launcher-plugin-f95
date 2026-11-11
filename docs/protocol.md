@@ -49,7 +49,7 @@ The launcher never sends the cookie in `initialize`. See [Sign in](install.md#si
 | `secrets.get` | First use after start | Reads the cookie, key `cookie` |
 | `secrets.set` | After `source.setCredential` works | Saves the cookie |
 | `secrets.delete` | After `source.clearCredential` | Removes the cookie |
-| `settings.get` | Once, in `initialize` | Reads [startup options](settings.md). Defaults apply if the host cannot answer |
+| `settings.get` | Once, in `initialize` | Reads the [settings](settings.md). Defaults apply if the host cannot answer |
 | `browser.assist` | `source.prepareDownload` for an F95 `/dl/` link, when the browser permission is granted | Opens a browser and catches the file link. See [Browser assist](#browser-assist) |
 
 > [!NOTE]

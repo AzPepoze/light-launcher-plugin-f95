@@ -40,6 +40,6 @@ It runs as a separate program. The launcher starts it, talks to it over stdin an
 | Topic | Page |
 |---|---|
 | Install and sign in | [docs/install.md](docs/install.md) |
-| Startup options | [docs/settings.md](docs/settings.md) |
+| Settings | [docs/settings.md](docs/settings.md) |
 | Messages the plugin understands | [docs/protocol.md](docs/protocol.md) |
 | Development, tests and builds | [docs/development.md](docs/development.md) |
