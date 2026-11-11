@@ -1,6 +1,53 @@
 import { describe, expect, test } from 'bun:test';
+import fs from 'node:fs';
+import Ajv2020 from 'ajv/dist/2020';
 import { DEFAULT_USER_AGENT } from '@light-launcher/plugin-sdk/helpers';
+import manifest from '../plugin.json';
+import settingsSchema from '../settings.schema.json';
 import { settingsFrom } from '../src/settings';
+
+/** The values a schema's defaults describe, the way the launcher stores them. */
+function defaultsOf(schema: { properties: Record<string, { default?: unknown }> }): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [key, property] of Object.entries(schema.properties)) {
+    if (property.default !== undefined) out[key] = property.default;
+  }
+  return out;
+}
+
+describe('settings.schema.json', () => {
+  // x-ll-* keys are host UI hints: validators must ignore them, so strict mode is off
+  const ajv = new Ajv2020({ allErrors: true, strict: false });
+
+  test('is a valid JSON Schema', () => {
+    expect(ajv.validateSchema(settingsSchema)).toBe(true);
+  });
+
+  test('is referenced by plugin.json and the file exists', () => {
+    expect(manifest.contributes.settings).toEqual({ $ref: 'settings.schema.json' });
+    expect(fs.existsSync(new URL('../settings.schema.json', import.meta.url))).toBe(true);
+  });
+
+  test('every setting has a title, a description, a default and a group', () => {
+    for (const [key, property] of Object.entries(settingsSchema.properties)) {
+      expect({ key, title: typeof property.title }).toEqual({ key, title: 'string' });
+      expect({ key, description: typeof property.description }).toEqual({ key, description: 'string' });
+      expect({ key, hasDefault: property.default !== undefined }).toEqual({ key, hasDefault: true });
+      expect({ key, group: typeof property['x-ll-group'] }).toEqual({ key, group: 'string' });
+    }
+  });
+
+  test('its defaults keep the behaviour the plugin had before settings existed', () => {
+    expect(settingsFrom(defaultsOf(settingsSchema))).toEqual(settingsFrom({}));
+    expect(settingsFrom({})).toEqual({ userAgent: DEFAULT_USER_AGENT, browserPath: null, dumpDir: null });
+  });
+
+  test('accepts a complete set of values and rejects unknown keys', () => {
+    const validate = ajv.compile(settingsSchema);
+    expect(validate(defaultsOf(settingsSchema))).toBe(true);
+    expect(validate({ notASetting: true })).toBe(false);
+  });
+});
 
 describe('settingsFrom', () => {
   test('uses the built-in defaults when the host sends nothing', () => {

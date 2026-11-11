@@ -15,7 +15,8 @@
         "label": "F95 Zone",
         "capabilities": ["browse", "auth", "updateCheck", "resolveFiles", "sync:index"]
       }
-    ]
+    ],
+    "settings": { "$ref": "settings.schema.json" }
   },
   "permissions": {
     "network": [

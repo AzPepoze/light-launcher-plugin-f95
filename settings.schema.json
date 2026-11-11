@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "F95 Zone settings",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "userAgent": {
+      "type": "string",
+      "title": "Browser identity",
+      "description": "The User-Agent header sent to F95 Zone.",
+      "default": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+      "x-ll-group": "Network",
+      "x-ll-advanced": true
+    },
+    "browserPath": {
+      "type": "string",
+      "title": "Browser program",
+      "description": "The Chrome, Edge or Chromium program used for browser assist. Leave empty to use the usual install locations.",
+      "default": "",
+      "x-ll-group": "Browser",
+      "x-ll-widget": "file",
+      "x-ll-advanced": true
+    },
+    "dumpDir": {
+      "type": "string",
+      "title": "Page dump folder",
+      "description": "Save pages that fail to parse here as .html files. Leave empty to turn this off. Saved pages can contain your account name.",
+      "default": "",
+      "x-ll-group": "Debug",
+      "x-ll-widget": "folder",
+      "x-ll-advanced": true
+    }
+  }
+}
