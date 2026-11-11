@@ -1,5 +1,7 @@
 import type { LogFn, LogLevel } from './host';
 
+const LEVEL_RANK: Record<LogLevel, number> = { debug: 0, info: 1, warn: 2, error: 3 };
+
 /**
  * Logs go to stderr. Stdout carries the JSON-RPC stream, so it must stay clean.
  * Colors are used only on a TTY and when NO_COLOR is not set.
@@ -23,6 +25,8 @@ export interface LoggerOptions {
   color?: boolean;
   write?: (line: string) => void;
   now?: () => Date;
+  /** lines below this level are dropped; debug lines need verbose logging */
+  minLevel?: LogLevel;
 }
 
 /** FNV-1a: the same input always gives the same number, in every run. */
@@ -82,8 +86,10 @@ export function createLogger(category: string, options: LoggerOptions = {}): Log
   const write = options.write ?? ((line: string) => process.stderr.write(line));
   const now = options.now ?? (() => new Date());
   const categoryText = colorize(`[${category}]`, categorySgr(category), color);
+  const minRank = LEVEL_RANK[options.minLevel ?? 'debug'];
 
   return (level, message, extra) => {
+    if (LEVEL_RANK[level] < minRank) return;
     const time = colorize(now().toISOString(), '\x1b[90m', color);
     const levelText = colorize(LEVEL_TAGS[level], LEVEL_COLORS[level], color);
     // one write per line keeps lines whole when several sources log at once

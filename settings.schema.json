@@ -59,6 +59,13 @@
       "x-ll-widget": "file",
       "x-ll-advanced": true
     },
+    "verboseLogging": {
+      "type": "boolean",
+      "title": "Verbose logging",
+      "description": "Write a debug line for each request: host name, status and time. Paths are not logged.",
+      "default": false,
+      "x-ll-group": "Debug"
+    },
     "dumpDir": {
       "type": "string",
       "title": "Page dump folder",

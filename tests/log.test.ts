@@ -32,6 +32,15 @@ describe('createLogger', () => {
     expect(lines).toEqual(['2026-01-02T03:04:05.000Z WARN  [f95] slow page {"ms":900}\n']);
   });
 
+  test('drops lines below minLevel', () => {
+    const lines: string[] = [];
+    const log = createLogger('f95', { color: false, write: (line) => lines.push(line), minLevel: 'info' });
+    log('debug', 'request sent');
+    log('info', 'ready');
+    expect(lines.length).toBe(1);
+    expect(lines[0]).toContain('ready');
+  });
+
   test('adds color codes when color is on', () => {
     const lines: string[] = [];
     const log = createLogger('f95', { color: true, write: (line) => lines.push(line) });

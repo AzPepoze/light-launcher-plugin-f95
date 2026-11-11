@@ -14,12 +14,12 @@ import profileJson from '../profiles/f95zone.json';
 import { BrowserEvents, createBrowserAssist, type BrowserAssist } from './browser-assist';
 import { fileSitemapCache } from './cache';
 import { secretCredentialStore } from './credential';
-import type { HostServices, LogFn } from './host';
+import type { HostServices, LogFn, LogLevel } from './host';
 import { createLogger } from './log';
 import { createF95Provider } from './providers/f95';
 import { loadProfile } from './providers/xenforo';
 import { settingsFrom, type PluginSettings } from './settings';
-import { spacedTransport } from './transport';
+import { loggedTransport, spacedTransport } from './transport';
 
 const API_VERSION = '1';
 const SETTINGS_TIMEOUT_MS = 5_000;
@@ -31,6 +31,10 @@ const PROFILE_OVERLAY_PATH = ['profiles', 'f95zone.local.json'] as const;
 interface RunState {
   services: HostServices;
   provider: SourceProvider;
+}
+
+function logLevelFor(settings: PluginSettings): LogLevel {
+  return settings.verboseLogging ? 'debug' : 'info';
 }
 
 /** Host settings are optional: when the host cannot answer, the defaults apply. */
@@ -64,7 +68,7 @@ interface ServicesInput {
 function buildServices(input: ServicesInput): HostServices {
   const { dataDir, settings, log, ctx } = input;
   const base = {
-    http: new HttpClient(spacedTransport(hostTransport(ctx.host), settings.requestDelayMs), {
+    http: new HttpClient(spacedTransport(loggedTransport(hostTransport(ctx.host), log), settings.requestDelayMs), {
       defaultHeaders: { 'User-Agent': settings.userAgent },
       maxBodyBytes: MAX_BODY_BYTES,
     }),
@@ -88,8 +92,9 @@ async function startPlugin(params: InitializeParams, ctx: PluginContext, events:
   if (params.apiVersion !== API_VERSION) {
     throw new RpcFailure(ErrorCode.InvalidParams, `this plugin speaks apiVersion ${API_VERSION}`);
   }
-  const log = createLogger(manifest.id);
-  const settings = await readSettings(ctx, log);
+  // settings are read first, so the logger that the rest of the run uses can honour them
+  const settings = await readSettings(ctx, createLogger(manifest.id));
+  const log = createLogger(manifest.id, { minLevel: logLevelFor(settings) });
   const services = buildServices({
     dataDir: params.dataDir,
     settings,

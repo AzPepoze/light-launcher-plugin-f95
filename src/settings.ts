@@ -20,6 +20,7 @@ export interface PluginSettings {
   updateCheckIntervalMs: number;
   /** extra wait between two requests, on top of the launcher's own spacing */
   requestDelayMs: number;
+  verboseLogging: boolean;
 }
 
 const HOUR_MS = 60 * 60 * 1000;
@@ -76,5 +77,6 @@ export function settingsFrom(raw: Record<string, unknown>): PluginSettings {
     filePreferences: filePreferencesFrom(raw),
     updateCheckIntervalMs: updateIntervalMsSetting(raw),
     requestDelayMs: requestDelaySetting(raw),
+    verboseLogging: raw.verboseLogging === true,
   };
 }

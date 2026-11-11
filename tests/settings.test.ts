@@ -46,6 +46,7 @@ describe('settings.schema.json', () => {
       filePreferences: { preferredHosts: [], preferredPlatform: 'any' },
       updateCheckIntervalMs: 0,
       requestDelayMs: 0,
+      verboseLogging: false,
     });
   });
 
@@ -65,6 +66,7 @@ describe('settingsFrom', () => {
       filePreferences: { preferredHosts: [], preferredPlatform: 'any' },
       updateCheckIntervalMs: 0,
       requestDelayMs: 0,
+      verboseLogging: false,
     });
   });
 
@@ -84,6 +86,7 @@ describe('settingsFrom', () => {
       filePreferences: { preferredHosts: [], preferredPlatform: 'any' },
       updateCheckIntervalMs: 0,
       requestDelayMs: 0,
+      verboseLogging: false,
     });
   });
 
@@ -105,6 +108,11 @@ describe('settingsFrom', () => {
     expect(settingsFrom({ requestDelayMs: -5 }).requestDelayMs).toBe(0);
     expect(settingsFrom({ requestDelayMs: 99_999 }).requestDelayMs).toBe(10_000);
     expect(settingsFrom({ requestDelayMs: 'fast' }).requestDelayMs).toBe(0);
+  });
+
+  test('turns verbose logging on only for a true value', () => {
+    expect(settingsFrom({ verboseLogging: true }).verboseLogging).toBe(true);
+    expect(settingsFrom({ verboseLogging: 'yes' }).verboseLogging).toBe(false);
   });
 
   test('reads the platform and falls back to any for an unknown value', () => {
