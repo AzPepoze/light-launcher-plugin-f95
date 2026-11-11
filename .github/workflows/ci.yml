@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bun:
+    name: bun checks
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: plugin
+    steps:
+      - name: Check out the plugin
+        uses: actions/checkout@v4
+        with:
+          path: plugin
+
+      # The SDK is a file: dependency, so its repo must sit next to the plugin.
+      - name: Check out the SDK
+        uses: actions/checkout@v4
+        with:
+          repository: AzPepoze/light-launcher-plugin-sdk
+          path: light-launcher-plugin-sdk
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Unit tests
+        run: bun test
+
+      - name: Build Linux
+        run: bun run build:linux
+
+      - name: Build Windows
+        run: bun run build:windows
+
+      - name: Validate plugin.json
+        run: bunx llp validate .
+
+      - name: Pack smoke test
+        run: bunx llp pack . --out dist
+
+      - name: Upload the package
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-package
+          path: plugin/dist/*.llplugin
+          if-no-files-found: error
