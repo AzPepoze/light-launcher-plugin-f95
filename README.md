@@ -1,15 +1,29 @@
 # Light Launcher F95 plugin
 
-A source plugin for F95 Zone. It reads forum thread pages with your own account, finds download links, and checks threads for new versions.
+A source plugin for F95 Zone. Its main job is to check the games in your library for new versions.
 
 It runs as a separate program. The launcher starts it, talks to it over stdin and stdout, and stops it when done. If the plugin crashes, the launcher keeps running.
 
+## What this plugin is for
+
+> [!NOTE]
+> This is a small personal project, not an F95 Zone product, and it is not affiliated with or endorsed by F95 Zone.
+> It exists to check whether the games you already follow have a new version. It is not meant to bypass F95 Zone.
+
+| It does | It does not |
+|---|---|
+| Sign in with your own account | Solve or skip CAPTCHAs |
+| Read the thread pages of games you add | Share or collect other people's accounts |
+| Check those threads for a new version | Open masked links in a special way |
+| Read the download links that a thread shows, so the launcher can offer them to you | Get around paywalls or access limits |
+
 > [!IMPORTANT]
-> **Legal notice**
+> **Honest notice**
 >
-> - Use this plugin only with accounts you own.
+> - Use this plugin only with an account you own.
 > - Download only content you have the right to get.
-> - The plugin does not bypass paywalls or access control.
+> - F95 Zone may not allow automated tools. I have not asked them for permission yet.
+> - I can remove this repository at any time. If you are from F95 Zone, or you own content shown here, please contact me through an issue on this repository and I will respond and take it down if you ask.
 > - It is installed by the community. It is not in the default plugin registry.
 
 ## Quick start
