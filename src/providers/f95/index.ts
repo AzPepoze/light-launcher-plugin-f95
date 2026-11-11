@@ -1,5 +1,6 @@
 import type { CallHooks, SourceProvider } from '@light-launcher/plugin-sdk/runtime';
 import type { SyncStatus } from '@light-launcher/plugin-sdk/types';
+import type { FilePreferences } from '../../downloads/preferences';
 import type { HostServices } from '../../host';
 import { indexStatus, syncThreadIndex } from '../../library/f95-index';
 import { createXenForoProvider, type XenForoProfile } from '../xenforo';
@@ -7,6 +8,7 @@ import { createXenForoProvider, type XenForoProfile } from '../xenforo';
 export interface F95ProviderOptions {
   profile: XenForoProfile;
   userAgent?: string;
+  filePreferences?: FilePreferences;
 }
 
 /**
@@ -18,6 +20,7 @@ export function createF95Provider(services: HostServices, options: F95ProviderOp
     id: 'f95',
     label: 'F95 Zone',
     userAgent: options.userAgent,
+    filePreferences: options.filePreferences,
   });
   return { ...xenforo, sync: (hooks) => syncIndex(services, xenforo.id, hooks) };
 }

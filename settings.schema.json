@@ -4,6 +4,26 @@
   "type": "object",
   "additionalProperties": false,
   "properties": {
+    "preferredHosts": {
+      "type": "array",
+      "title": "Preferred file hosts",
+      "description": "File hosts to list first, in this order. Hosts not listed keep the thread's order. Empty keeps the thread's order for all links.",
+      "items": {
+        "type": "string",
+        "enum": ["pixeldrain", "mediafire", "workupload", "datanodes", "krakenfiles", "buzzheavier", "mixdrop", "mega"]
+      },
+      "uniqueItems": true,
+      "default": [],
+      "x-ll-group": "Downloads"
+    },
+    "preferredPlatform": {
+      "type": "string",
+      "title": "Preferred platform",
+      "description": "Show only links for this platform. Use any to show all links. Links with an unknown platform are always shown.",
+      "enum": ["any", "windows", "linux", "mac"],
+      "default": "any",
+      "x-ll-group": "Downloads"
+    },
     "userAgent": {
       "type": "string",
       "title": "Browser identity",

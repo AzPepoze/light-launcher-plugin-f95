@@ -5,6 +5,7 @@ import type {
 import { isNewer } from '@light-launcher/plugin-sdk/helpers';
 import type { CallHooks, SourceProvider } from '@light-launcher/plugin-sdk/runtime';
 import type { PrepareDownloadResult } from '@light-launcher/plugin-sdk/types';
+import { applyFilePreferences, DEFAULT_FILE_PREFERENCES, type FilePreferences } from '../../downloads/preferences';
 import type { HostServices } from '../../host';
 import type { XenForoProfile } from './profile';
 import {
@@ -20,6 +21,8 @@ export interface XenForoProviderOptions {
   /** defaults to the profile label */
   label?: string;
   userAgent?: string;
+  /** host and platform choices applied to the links resolveFiles returns */
+  filePreferences?: FilePreferences;
 }
 
 const MAX_CACHE = 50;
@@ -211,6 +214,12 @@ export function createXenForoProvider(
   }
 
   async function resolveFiles(game: GameRef): Promise<FileCandidate[]> {
+    const files = await listFiles(game);
+    return applyFilePreferences(files, options.filePreferences ?? DEFAULT_FILE_PREFERENCES);
+  }
+
+  /** The links the thread lists, parsed once and cached. The cache keeps the thread's order. */
+  async function listFiles(game: GameRef): Promise<FileCandidate[]> {
     const id = await memoryId(game.sourceId);
     const cached = parsedCache.get(cacheKey(id, game.updatedAt ?? null)) ?? null;
     if (cached) return cached;

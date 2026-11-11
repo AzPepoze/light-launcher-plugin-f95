@@ -39,7 +39,12 @@ describe('settings.schema.json', () => {
 
   test('its defaults keep the behaviour the plugin had before settings existed', () => {
     expect(settingsFrom(defaultsOf(settingsSchema))).toEqual(settingsFrom({}));
-    expect(settingsFrom({})).toEqual({ userAgent: DEFAULT_USER_AGENT, browserPath: null, dumpDir: null });
+    expect(settingsFrom({})).toEqual({
+      userAgent: DEFAULT_USER_AGENT,
+      browserPath: null,
+      dumpDir: null,
+      filePreferences: { preferredHosts: [], preferredPlatform: 'any' },
+    });
   });
 
   test('accepts a complete set of values and rejects unknown keys', () => {
@@ -55,11 +60,12 @@ describe('settingsFrom', () => {
       userAgent: DEFAULT_USER_AGENT,
       browserPath: null,
       dumpDir: null,
+      filePreferences: { preferredHosts: [], preferredPlatform: 'any' },
     });
   });
 
   test('keeps text values the host sends', () => {
-    expect(settingsFrom({ userAgent: 'custom/1.0', browserPath: '/opt/chrome', dumpDir: '/tmp/dump' })).toEqual({
+    expect(settingsFrom({ userAgent: 'custom/1.0', browserPath: '/opt/chrome', dumpDir: '/tmp/dump' })).toMatchObject({
       userAgent: 'custom/1.0',
       browserPath: '/opt/chrome',
       dumpDir: '/tmp/dump',
@@ -71,6 +77,17 @@ describe('settingsFrom', () => {
       userAgent: DEFAULT_USER_AGENT,
       browserPath: null,
       dumpDir: null,
+      filePreferences: { preferredHosts: [], preferredPlatform: 'any' },
     });
+  });
+
+  test('keeps the order of the preferred hosts and drops unknown and repeated names', () => {
+    const { filePreferences } = settingsFrom({ preferredHosts: ['mega', 'nope', 'pixeldrain', 'mega', 7] });
+    expect(filePreferences.preferredHosts).toEqual(['mega', 'pixeldrain']);
+  });
+
+  test('reads the platform and falls back to any for an unknown value', () => {
+    expect(settingsFrom({ preferredPlatform: 'linux' }).filePreferences.preferredPlatform).toBe('linux');
+    expect(settingsFrom({ preferredPlatform: 'android' }).filePreferences.preferredPlatform).toBe('any');
   });
 });

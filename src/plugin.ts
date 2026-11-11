@@ -98,7 +98,11 @@ async function startPlugin(params: InitializeParams, ctx: PluginContext, events:
     hostGrantedBrowser: params.grantedPermissions.browser,
   });
   const profile = loadProfile(profileJson, path.join(params.dataDir, ...PROFILE_OVERLAY_PATH));
-  const provider = createF95Provider(services, { profile, userAgent: settings.userAgent });
+  const provider = createF95Provider(services, {
+    profile,
+    userAgent: settings.userAgent,
+    filePreferences: settings.filePreferences,
+  });
   log('info', `ready (${manifest.name} ${manifest.version})`);
   return { services, provider };
 }
