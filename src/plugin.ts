@@ -19,6 +19,7 @@ import { createLogger } from './log';
 import { createF95Provider } from './providers/f95';
 import { loadProfile } from './providers/xenforo';
 import { settingsFrom, type PluginSettings } from './settings';
+import { spacedTransport } from './transport';
 
 const API_VERSION = '1';
 const SETTINGS_TIMEOUT_MS = 5_000;
@@ -63,7 +64,7 @@ interface ServicesInput {
 function buildServices(input: ServicesInput): HostServices {
   const { dataDir, settings, log, ctx } = input;
   const base = {
-    http: new HttpClient(hostTransport(ctx.host), {
+    http: new HttpClient(spacedTransport(hostTransport(ctx.host), settings.requestDelayMs), {
       defaultHeaders: { 'User-Agent': settings.userAgent },
       maxBodyBytes: MAX_BODY_BYTES,
     }),

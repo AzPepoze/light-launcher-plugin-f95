@@ -18,10 +18,13 @@ export interface PluginSettings {
   filePreferences: FilePreferences;
   /** 0 checks every time */
   updateCheckIntervalMs: number;
+  /** extra wait between two requests, on top of the launcher's own spacing */
+  requestDelayMs: number;
 }
 
 const HOUR_MS = 60 * 60 * 1000;
 const MAX_UPDATE_INTERVAL_HOURS = 720;
+const MAX_REQUEST_DELAY_MS = 10_000;
 
 function textSetting(raw: Record<string, unknown>, key: string): string | null {
   const value = raw[key];
@@ -59,6 +62,12 @@ function updateIntervalMsSetting(raw: Record<string, unknown>): number {
   return Math.min(Math.max(value, 0), MAX_UPDATE_INTERVAL_HOURS) * HOUR_MS;
 }
 
+function requestDelaySetting(raw: Record<string, unknown>): number {
+  const value = raw.requestDelayMs;
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 0;
+  return Math.min(Math.max(Math.round(value), 0), MAX_REQUEST_DELAY_MS);
+}
+
 export function settingsFrom(raw: Record<string, unknown>): PluginSettings {
   return {
     userAgent: textSetting(raw, 'userAgent') ?? DEFAULT_USER_AGENT,
@@ -66,5 +75,6 @@ export function settingsFrom(raw: Record<string, unknown>): PluginSettings {
     dumpDir: textSetting(raw, 'dumpDir'),
     filePreferences: filePreferencesFrom(raw),
     updateCheckIntervalMs: updateIntervalMsSetting(raw),
+    requestDelayMs: requestDelaySetting(raw),
   };
 }

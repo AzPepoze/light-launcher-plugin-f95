@@ -45,6 +45,7 @@ describe('settings.schema.json', () => {
       dumpDir: null,
       filePreferences: { preferredHosts: [], preferredPlatform: 'any' },
       updateCheckIntervalMs: 0,
+      requestDelayMs: 0,
     });
   });
 
@@ -63,6 +64,7 @@ describe('settingsFrom', () => {
       dumpDir: null,
       filePreferences: { preferredHosts: [], preferredPlatform: 'any' },
       updateCheckIntervalMs: 0,
+      requestDelayMs: 0,
     });
   });
 
@@ -81,6 +83,7 @@ describe('settingsFrom', () => {
       dumpDir: null,
       filePreferences: { preferredHosts: [], preferredPlatform: 'any' },
       updateCheckIntervalMs: 0,
+      requestDelayMs: 0,
     });
   });
 
@@ -95,6 +98,13 @@ describe('settingsFrom', () => {
     expect(settingsFrom({ updateCheckIntervalHours: -3 }).updateCheckIntervalMs).toBe(0);
     expect(settingsFrom({ updateCheckIntervalHours: 10_000 }).updateCheckIntervalMs).toBe(720 * hour);
     expect(settingsFrom({ updateCheckIntervalHours: 'soon' }).updateCheckIntervalMs).toBe(0);
+  });
+
+  test('reads the request delay as whole milliseconds within 0 to 10 seconds', () => {
+    expect(settingsFrom({ requestDelayMs: 400 }).requestDelayMs).toBe(400);
+    expect(settingsFrom({ requestDelayMs: -5 }).requestDelayMs).toBe(0);
+    expect(settingsFrom({ requestDelayMs: 99_999 }).requestDelayMs).toBe(10_000);
+    expect(settingsFrom({ requestDelayMs: 'fast' }).requestDelayMs).toBe(0);
   });
 
   test('reads the platform and falls back to any for an unknown value', () => {

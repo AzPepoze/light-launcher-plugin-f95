@@ -33,6 +33,15 @@
       "default": 0,
       "x-ll-group": "Updates"
     },
+    "requestDelayMs": {
+      "type": "integer",
+      "title": "Delay between requests (ms)",
+      "description": "Extra wait between two requests to any site. The launcher already spaces requests to one site by 250 ms. Use a higher value to be gentler with sites.",
+      "minimum": 0,
+      "maximum": 10000,
+      "default": 0,
+      "x-ll-group": "Network"
+    },
     "userAgent": {
       "type": "string",
       "title": "Browser identity",
