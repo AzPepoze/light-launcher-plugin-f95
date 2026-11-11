@@ -33,6 +33,7 @@ It runs as a separate program. The launcher starts it, talks to it over stdin an
 | 1. Install packages | `bun install` |
 | 2. Run the tests | `bun test` |
 | 3. Build for Linux | `bun run build:linux` |
+| 4. Build for Windows | `bun run build:windows` |
 
 ## More
 
