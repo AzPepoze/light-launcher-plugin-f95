@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import type {
-  AuthState, FileCandidate, GameDTO, GameRef, ProviderCapabilities, Ref, UpdateInfo,
+  AuthState, BrowseParams, BrowseResult, FileCandidate, GameDTO, GameRef, ListFiltersParams,
+  ListFiltersResult, ProviderCapabilities, Ref, UpdateInfo,
 } from '@light-launcher/plugin-sdk/types';
 import { isNewer } from '@light-launcher/plugin-sdk/helpers';
 import type { CallHooks, SourceProvider } from '@light-launcher/plugin-sdk/runtime';
@@ -15,9 +16,14 @@ import type { XenForoProfile } from './profile';
 import {
   extractFileCandidates, isDownloadRedirect, parseAccountName, parseListing, parseThread, parseThreadMeta,
 } from './parse';
+import {
+  decodeBrowseCursor, encodeBrowseCursor, engineFilterOptions, filterIndexRows, indexGames,
+  LISTING_SORTS, planBrowse, type BrowsePlan,
+} from './browse';
 
 export * from './profile';
 export * from './parse';
+export * from './browse';
 
 export interface XenForoProviderOptions {
   /** defaults to the profile id */
@@ -231,6 +237,74 @@ export function createXenForoProvider(
     return parseListing(res.text, profile, target.toString());
   }
 
+  async function browseIndex(plan: BrowsePlan, page: number, offset: number, limit: number): Promise<BrowseResult> {
+    const rows = services.sitemapCache.rows(sourceId);
+    if (!rows.length) {
+      services.log('warn', 'the F95 thread index is empty; run a sync to search titles');
+    }
+    const matched = filterIndexRows(rows, plan);
+    const total = matched.length;
+    const games = indexGames(matched.slice(offset, offset + limit), profile, sourceId);
+    const next = offset + games.length < total
+      ? encodeBrowseCursor(plan, page, offset + games.length)
+      : undefined;
+    return next ? { games, nextCursor: next, total } : { games, total };
+  }
+
+  async function browseListing(plan: BrowsePlan, page: number, offset: number, limit: number): Promise<BrowseResult> {
+    const games: GameDTO[] = [];
+    const seen = new Set<string>();
+    let next: string | undefined;
+    let currentPage = page;
+    let currentOffset = offset;
+
+    while (games.length < limit) {
+      const target = new URL(`${base}${profile.listing.path}`, `${base}/`);
+      target.searchParams.set('order', LISTING_SORTS[plan.sort]);
+      target.searchParams.set('direction', plan.order);
+      if (currentPage > 1) target.searchParams.set(profile.listing.pageParam, String(currentPage));
+      const res = await services.http.request(target.toString(), { headers: await cookieHeaders() });
+      if (res.notModified || res.status >= 400) break;
+      const batch = parseListing(res.text, profile, target.toString());
+      if (!batch.length || currentOffset >= batch.length) break;
+
+      const available = batch.slice(currentOffset);
+      let consumed = 0;
+      let added = 0;
+      for (const game of available) {
+        consumed++;
+        if (seen.has(game.sourceId)) continue;
+        seen.add(game.sourceId);
+        games.push(game);
+        added++;
+        if (games.length === limit) break;
+      }
+      if (games.length === limit) {
+        next = encodeBrowseCursor(plan, currentPage, currentOffset + consumed);
+        break;
+      }
+      // a page with nothing new means the listing started repeating itself
+      if (!added) break;
+      currentPage++;
+      currentOffset = 0;
+    }
+    return next ? { games, nextCursor: next } : { games };
+  }
+
+  async function browse(params: BrowseParams): Promise<BrowseResult> {
+    const plan = planBrowse(params);
+    const limit = Math.max(1, Math.min(params.limit, 100));
+    const cursor = params.cursor ? decodeBrowseCursor(plan, params.cursor) : { page: 1, offset: 0 };
+    if (plan.mode === 'index') return browseIndex(plan, cursor.page, cursor.offset, limit);
+    return browseListing(plan, cursor.page, cursor.offset, limit);
+  }
+
+  async function listFilters(params: ListFiltersParams): Promise<ListFiltersResult> {
+    if (params.group !== 'engine') return { options: [] };
+    const limit = Math.max(1, Math.min(params.limit, 200));
+    return { options: engineFilterOptions(services.sitemapCache.rows(sourceId), params.query ?? '', limit) };
+  }
+
   async function threadHtml(game: GameRef): Promise<string> {
     let res = await services.http.request(game.url, { cacheKey: game.url, headers: await cookieHeaders() });
     if (res.notModified) {
@@ -311,7 +385,6 @@ export function createXenForoProvider(
     try {
       captured = await services.browser.capture(file.url, {
         signal: hooks.signal,
-        message: 'Finish the download step in the browser window; the launcher will catch the file.',
         onWaiting: (message) => hooks.progress?.({ message }),
         onProgress: (percent, message) => hooks.progress?.({ done: percent, total: 100, message }),
       });
@@ -340,7 +413,22 @@ export function createXenForoProvider(
 
     if (findResolver(file.url)) {
       const credentials = withBrowserHeaders(file.url, file.headers ?? {});
-      const resolved = await resolveDownload(file.url, { headers: credentials, http: services.http });
+      let resolved;
+      try {
+        resolved = await resolveDownload(file.url, { headers: credentials, http: services.http });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        throw new RpcFailure(
+          ErrorCode.RemoteError,
+          `${label}: could not resolve the ${file.host ?? 'file host'} link: ${message}`,
+        );
+      }
+      if (resolved.decrypt) {
+        throw new RpcFailure(
+          ErrorCode.InternalError,
+          `${label}: MEGA downloads need the file key, but source.prepareDownload has no field for it.`,
+        );
+      }
       if (!resolved.needsHuman) {
         return {
           url: resolved.url,
@@ -411,6 +499,7 @@ export function createXenForoProvider(
     updateCheck: true,
     resolveFiles: true,
     versioned: true,
+    'browse:filters': true,
   };
 
   return {
@@ -422,6 +511,8 @@ export function createXenForoProvider(
     clearCredential,
     fetchGame,
     fetchList,
+    browse,
+    listFilters,
     resolveFiles,
     prepareDownload,
     checkUpdate,

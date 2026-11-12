@@ -53,14 +53,12 @@ describe('settings.schema.json', () => {
     expect(settingsFrom(defaultsOf(settingsSchema))).toEqual(settingsFrom({}));
     expect(settingsFrom({})).toEqual({
       userAgent: DEFAULT_USER_AGENT,
-      browserPath: null,
       dumpDir: null,
       filePreferences: { preferredHosts: [], preferredPlatform: 'any' },
       updateCheckIntervalMs: 0,
       requestDelayMs: 0,
       verboseLogging: false,
       browserAssistEnabled: true,
-      useExternalChrome: false,
       downloadRoot: 'downloads',
       gameSubfolder: true,
       installAfterDownload: false,
@@ -86,14 +84,12 @@ describe('settingsFrom', () => {
   test('uses the built-in defaults when the host sends nothing', () => {
     expect(settingsFrom({})).toEqual({
       userAgent: DEFAULT_USER_AGENT,
-      browserPath: null,
       dumpDir: null,
       filePreferences: { preferredHosts: [], preferredPlatform: 'any' },
       updateCheckIntervalMs: 0,
       requestDelayMs: 0,
       verboseLogging: false,
       browserAssistEnabled: true,
-      useExternalChrome: false,
       downloadRoot: 'downloads',
       gameSubfolder: true,
       installAfterDownload: false,
@@ -102,24 +98,21 @@ describe('settingsFrom', () => {
   });
 
   test('keeps text values the host sends', () => {
-    expect(settingsFrom({ userAgent: 'custom/1.0', browserPath: '/opt/chrome', dumpDir: '/tmp/dump' })).toMatchObject({
+    expect(settingsFrom({ userAgent: 'custom/1.0', dumpDir: '/tmp/dump' })).toMatchObject({
       userAgent: 'custom/1.0',
-      browserPath: '/opt/chrome',
       dumpDir: '/tmp/dump',
     });
   });
 
   test('treats blank and non-text values as not set', () => {
-    expect(settingsFrom({ userAgent: '  ', browserPath: '', dumpDir: 42 })).toEqual({
+    expect(settingsFrom({ userAgent: '  ', dumpDir: 42 })).toEqual({
       userAgent: DEFAULT_USER_AGENT,
-      browserPath: null,
       dumpDir: null,
       filePreferences: { preferredHosts: [], preferredPlatform: 'any' },
       updateCheckIntervalMs: 0,
       requestDelayMs: 0,
       verboseLogging: false,
       browserAssistEnabled: true,
-      useExternalChrome: false,
       downloadRoot: 'downloads',
       gameSubfolder: true,
       installAfterDownload: false,
@@ -156,12 +149,6 @@ describe('settingsFrom', () => {
     expect(settingsFrom({}).browserAssistEnabled).toBe(true);
     expect(settingsFrom({ browserAssistEnabled: false }).browserAssistEnabled).toBe(false);
     expect(settingsFrom({ browserAssistEnabled: 'no' }).browserAssistEnabled).toBe(true);
-  });
-
-  test('the external Chrome route is off unless the host sends true', () => {
-    expect(settingsFrom({}).useExternalChrome).toBe(false);
-    expect(settingsFrom({ useExternalChrome: true }).useExternalChrome).toBe(true);
-    expect(settingsFrom({ useExternalChrome: 'yes' }).useExternalChrome).toBe(false);
   });
 
   test('reads the download folder choice and its switches', () => {

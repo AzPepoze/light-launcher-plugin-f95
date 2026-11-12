@@ -18,6 +18,8 @@ export interface FakeServicesOptions {
   credential?: string | null;
   /** answers each browser capture; the default captures nothing */
   capture?: (url: string) => BrowserCapture | Promise<BrowserCapture>;
+  /** seeds the thread index used by browse and listFilters */
+  sitemap?: SitemapRow[];
 }
 
 export interface FakeServices {
@@ -35,6 +37,7 @@ export function fakeServices(options: FakeServicesOptions = {}): FakeServices {
   const calls: FakeHttpCall[] = [];
   const logs: string[] = [];
   const sitemap = new Map<string, { syncedAt: string; rows: SitemapRow[] }>();
+  if (options.sitemap) sitemap.set('f95', { syncedAt: new Date().toISOString(), rows: options.sitemap });
   let credential = options.credential ?? null;
 
   const transport: HttpTransport = {
@@ -77,6 +80,7 @@ export function fakeServices(options: FakeServicesOptions = {}): FakeServices {
     sitemapCache: {
       count: (source) => sitemap.get(source)?.rows.length ?? 0,
       syncedAt: (source) => sitemap.get(source)?.syncedAt ?? null,
+      rows: (source) => sitemap.get(source)?.rows ?? [],
       replace: (source, rows) => {
         sitemap.set(source, { syncedAt: new Date().toISOString(), rows });
       },

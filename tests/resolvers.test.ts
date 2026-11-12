@@ -2,18 +2,24 @@ import { describe, expect, test } from 'bun:test';
 import { findResolver } from '../src/downloads/resolvers';
 import { BuzzHeavierHost } from '../src/downloads/resolvers/buzzheavier';
 import { DataNodesHost } from '../src/downloads/resolvers/datanodes';
+import { KrakenFilesHost } from '../src/downloads/resolvers/krakenfiles';
+import { MediaFireHost } from '../src/downloads/resolvers/mediafire';
 import { MegaHost } from '../src/downloads/resolvers/mega';
 import { MixDropHost } from '../src/downloads/resolvers/mixdrop';
 import { PixelDrainHost } from '../src/downloads/resolvers/pixeldrain';
+import { WorkUploadHost } from '../src/downloads/resolvers/workupload';
 
 const MEGA_KEY = 'a'.repeat(43);
 
 describe('file host resolvers', () => {
   test('each supported host maps to its own resolver', () => {
     expect(findResolver('https://pixeldrain.com/u/abc')).toBeInstanceOf(PixelDrainHost);
+    expect(findResolver('https://www.mediafire.com/file/abc/game.zip/file')).toBeInstanceOf(MediaFireHost);
+    expect(findResolver('https://workupload.com/file/abc123')).toBeInstanceOf(WorkUploadHost);
     expect(findResolver('https://buzzheavier.com/abc123')).toBeInstanceOf(BuzzHeavierHost);
     expect(findResolver('https://bzzhr.to/abc123')).toBeInstanceOf(BuzzHeavierHost);
     expect(findResolver('https://datanodes.to/abc123')).toBeInstanceOf(DataNodesHost);
+    expect(findResolver('https://krakenfiles.com/view/abc123/file.html')).toBeInstanceOf(KrakenFilesHost);
     expect(findResolver('https://mixdrop.co/f/abc123')).toBeInstanceOf(MixDropHost);
     expect(findResolver(`https://mega.nz/file/abc#${MEGA_KEY}`)).toBeInstanceOf(MegaHost);
   });

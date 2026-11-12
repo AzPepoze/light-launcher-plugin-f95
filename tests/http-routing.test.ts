@@ -97,12 +97,12 @@ describe('source files never use network APIs directly', () => {
     expect(offenders).toEqual([]);
   });
 
-  test('only the browser debug client opens a WebSocket', async () => {
+  test('no source file opens its own WebSocket', async () => {
     const offenders: string[] = [];
     for (const file of sources) {
       const text = await Bun.file(path.join(SRC_DIR, file)).text();
       if (/new WebSocket\(/.test(text)) offenders.push(file);
     }
-    expect(offenders).toEqual(['downloads/browser/cdp.ts']);
+    expect(offenders).toEqual([]);
   });
 });

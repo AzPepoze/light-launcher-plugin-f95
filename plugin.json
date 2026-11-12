@@ -14,7 +14,21 @@
       {
         "id": "f95",
         "label": "F95 Zone",
-        "capabilities": ["browse", "auth", "updateCheck", "resolveFiles", "sync:index"]
+        "capabilities": ["browse", "browse:filters", "auth", "updateCheck", "resolveFiles", "sync:index"],
+        "sidebar": [
+          { "type": "search", "id": "text", "placeholder": "Search F95 titles" },
+          { "type": "multi", "id": "engine", "label": "Engine", "dynamic": true, "searchable": true },
+          {
+            "type": "sort",
+            "id": "sort",
+            "options": [
+              { "value": "latest", "label": "Last updated" },
+              { "value": "title", "label": "Title" }
+            ],
+            "orderable": true,
+            "default": { "value": "latest", "order": "desc" }
+          }
+        ]
       }
     ],
     "settings": { "$ref": "settings.schema.json" }

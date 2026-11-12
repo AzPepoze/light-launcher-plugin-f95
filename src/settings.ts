@@ -13,8 +13,6 @@ import {
 /** The values the plugin reads from the host. A missing or invalid value uses its default. */
 export interface PluginSettings extends DownloadSettings {
   userAgent: string;
-  /** null uses the usual install locations */
-  browserPath: string | null;
   /** null turns off dumps of pages that fail to parse */
   dumpDir: string | null;
   filePreferences: FilePreferences;
@@ -24,8 +22,6 @@ export interface PluginSettings extends DownloadSettings {
   requestDelayMs: number;
   verboseLogging: boolean;
   browserAssistEnabled: boolean;
-  /** use the plugin's own Chrome/Edge over CDP instead of the launcher's embedded browser */
-  useExternalChrome: boolean;
 }
 
 /** A settings object, or a reader called again for each download. */
@@ -89,14 +85,12 @@ function requestDelaySetting(raw: Record<string, unknown>): number {
 export function settingsFrom(raw: Record<string, unknown>): PluginSettings {
   return {
     userAgent: textSetting(raw, 'userAgent') ?? DEFAULT_USER_AGENT,
-    browserPath: textSetting(raw, 'browserPath'),
     dumpDir: textSetting(raw, 'dumpDir'),
     filePreferences: filePreferencesFrom(raw),
     updateCheckIntervalMs: updateIntervalMsSetting(raw),
     requestDelayMs: requestDelaySetting(raw),
     verboseLogging: boolSetting(raw, 'verboseLogging', false),
     browserAssistEnabled: boolSetting(raw, 'browserAssistEnabled', true),
-    useExternalChrome: boolSetting(raw, 'useExternalChrome', false),
     downloadRoot: downloadRootSetting(raw),
     gameSubfolder: boolSetting(raw, 'gameSubfolder', DOWNLOAD_SETTINGS_DEFAULTS.gameSubfolder),
     installAfterDownload: boolSetting(raw, 'installAfterDownload', DOWNLOAD_SETTINGS_DEFAULTS.installAfterDownload),

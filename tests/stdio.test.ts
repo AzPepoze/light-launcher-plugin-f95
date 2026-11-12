@@ -95,7 +95,10 @@ describe('stdio', () => {
       'secrets.get': () => ({ value: null }),
     });
     try {
-      const init = await host.request<{ pluginVersion: string; capabilities: Record<string, { browse: boolean }> }>(
+      const init = await host.request<{
+        pluginVersion: string;
+        capabilities: Record<string, { browse: boolean; 'browse:filters'?: boolean }>;
+      }>(
         'initialize',
         {
           hostVersion: '2.0.0',
@@ -107,6 +110,7 @@ describe('stdio', () => {
       );
       expect(init.pluginVersion).toBe('1.0.0');
       expect(init.capabilities.f95.browse).toBe(true);
+      expect(init.capabilities.f95['browse:filters']).toBe(true);
 
       expect(await host.request('source.parseRef', { url: 'https://f95zone.to/threads/my-game.12345/' })).toEqual({
         kind: 'game',

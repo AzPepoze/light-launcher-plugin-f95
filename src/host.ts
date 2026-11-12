@@ -23,10 +23,12 @@ export interface PluginStorage {
   dataDir: string;
 }
 
-/** Cached thread index used by "find a game by name". */
+/** Cached thread index used by "find a game by name" and the browse filters. */
 export interface SitemapCache {
   count(source: string): number;
   syncedAt(source: string): string | null;
+  /** rows in index order; empty when the source was never synced */
+  rows(source: string): SitemapRow[];
   replace(source: string, rows: SitemapRow[]): void;
 }
 
@@ -41,6 +43,3 @@ export interface HostServices {
   storage: PluginStorage;
   sitemapCache: SitemapCache;
 }
-
-/** The services the local browser needs. It cannot use `browser`, which is built from it. */
-export type CaptureServices = Pick<HostServices, 'credential' | 'log' | 'storage'>;

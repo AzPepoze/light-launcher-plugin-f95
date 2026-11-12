@@ -44,15 +44,13 @@ It runs as a separate program. The launcher starts it, talks to it over stdin an
 | Unpack the archive after download | off | Asks the launcher to unpack after the download |
 | Delete the archive after install | off | Removes the archive after a good unpack |
 | Browser assist | on | Opens a browser for pages that need a person |
-| Use external Chrome (old route) | off | Uses the plugin's own Chrome or Edge over CDP instead of the launcher's embedded browser |
 
 The launcher only has two download roots, so the plugin chooses a root and a subfolder,
 never an absolute folder. See [Settings](docs/settings.md#where-downloads-go).
 
 Some file hosts need a timer, login, captcha or button before they give the file. The
 plugin never clicks or fills that page. It asks the launcher to open an embedded window,
-you do the step, and the launcher catches the download. The old external Chrome route is
-still available with `useExternalChrome`; it needs Chrome, Edge or Chromium installed.
+you do the step, and the launcher catches the download.
 
 ## Permissions
 

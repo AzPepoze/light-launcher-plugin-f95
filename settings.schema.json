@@ -87,23 +87,6 @@
       "default": true,
       "x-ll-group": "Browser"
     },
-    "useExternalChrome": {
-      "type": "boolean",
-      "title": "Use external Chrome (old route)",
-      "description": "Open the plugin's own Chrome, Edge or Chromium window instead of the launcher's embedded browser. This is the old route and needs Chrome or Edge installed.",
-      "default": false,
-      "x-ll-group": "Browser",
-      "x-ll-advanced": true
-    },
-    "browserPath": {
-      "type": "string",
-      "title": "Browser program",
-      "description": "The Chrome, Edge or Chromium program used by the old external browser route. Leave empty to use the usual install locations.",
-      "default": "",
-      "x-ll-group": "Browser",
-      "x-ll-widget": "file",
-      "x-ll-advanced": true
-    },
     "verboseLogging": {
       "type": "boolean",
       "title": "Verbose logging",

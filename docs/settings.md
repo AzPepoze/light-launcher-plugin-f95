@@ -68,14 +68,10 @@ The timer is kept in memory, so it starts again when the plugin restarts.
 | Setting | Key | Default | What it does |
 |---|---|---|---|
 | Browser assist | `browserAssistEnabled` | on | Opens a browser so you can finish the download step, then catches the file link. When off, those downloads fail with a message |
-| Use external Chrome (old route) | `useExternalChrome` | off | Opens the plugin's own Chrome, Edge or Chromium window instead of the launcher's embedded browser. This is the old route and needs Chrome or Edge installed. Advanced |
-| Browser program | `browserPath` | empty | The Chrome, Edge or Chromium program used by the old external route. Empty uses the usual install locations. Advanced |
 
 > [!NOTE]
-> The embedded browser is the default. The plugin only asks the launcher to open the page;
-> you press the download button or solve the check yourself. The launcher observes the
-> download and returns the link. The old external route does the same with its own Chrome
-> window.
+> The plugin only asks the launcher to open the page; you press the download button or
+> solve the check yourself. The launcher observes the download and returns the link.
 
 ### Debug
 

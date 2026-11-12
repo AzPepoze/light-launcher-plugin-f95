@@ -24,6 +24,7 @@ export function fileSitemapCache(dataDir: string): SitemapCache {
   return {
     count: (source) => data[source]?.rows.length ?? 0,
     syncedAt: (source) => data[source]?.syncedAt ?? null,
+    rows: (source) => data[source]?.rows ?? [],
     replace(source, rows) {
       data = { ...data, [source]: { syncedAt: new Date().toISOString(), rows } };
       fs.mkdirSync(dataDir, { recursive: true });

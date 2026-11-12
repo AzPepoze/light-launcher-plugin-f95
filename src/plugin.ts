@@ -83,17 +83,8 @@ function buildServices(input: ServicesInput): HostServices {
     hostGranted: input.hostGrantedBrowser,
     host: ctx.host,
     events: input.events,
-    services: base,
-    settings: { browserPath: settings.browserPath, userAgent: settings.userAgent },
     enabled: settings.browserAssistEnabled,
-    useExternalChrome: settings.useExternalChrome,
-    getRoute: async () => {
-      const current = await readSettings(ctx, log);
-      return {
-        browserAssistEnabled: current.browserAssistEnabled,
-        useExternalChrome: current.useExternalChrome,
-      };
-    },
+    getEnabled: async () => (await readSettings(ctx, log)).browserAssistEnabled,
   });
   return { ...base, browser };
 }

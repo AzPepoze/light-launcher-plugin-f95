@@ -23,12 +23,11 @@ Builds use `bun build --compile`. The result is one program with no separate Bun
 | `src/plugin.ts` | Method handlers and run state, passed to `servePlugin` |
 | `src/host.ts` | `HostServices`: what the launcher gives the plugin |
 | `src/credential.ts` | The cookie in the host secret store, cached in memory |
-| `src/browser-assist.ts` | Chooses the host or the local browser for download links |
+| `src/browser-assist.ts` | Opens the launcher's browser for download links |
 | `src/providers/xenforo/` | Forum engine: parses threads, listings and accounts |
 | `src/providers/f95/` | F95 Zone, built on the forum engine |
 | `profiles/f95zone.json` | Selectors and host rules for F95 Zone |
 | `src/downloads/resolvers/` | Turns file-host pages into direct links |
-| `src/downloads/browser/` | Local browser (Chrome DevTools) for download links |
 | `src/library/f95-index.ts` | Builds the thread index from the sitemap |
 
 ## SDK
@@ -55,8 +54,9 @@ Tests use in-memory fakes from `tests/fakes.ts`. They do not contact F95 Zone or
 | `manifest.test.ts` | `plugin.json` against the SDK schema (skipped when `ajv` is missing) |
 | `stdio.test.ts` | Runs the plugin over stdio: initialize, parseRef, authStatus, shutdown |
 | `profile.test.ts` | The profile overlay in the data folder |
-| `browser-assist.test.ts` | Embedded browser or old local Chrome route |
-| `download-assist.test.ts` | Resolver success and browser-assist fallback |
+| `browser-assist.test.ts` | The launcher's browser route and its setting |
+| `browse.test.ts` | Browse, index search, filters and cursors |
+| `download-assist.test.ts` | Resolver selection, success and browser-assist fallback |
 | `download-hints.test.ts` | Download hints and safe game folder names |
 
 To run the stdio test against the built binary:

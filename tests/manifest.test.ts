@@ -34,4 +34,11 @@ describe('plugin.json', () => {
     expect(source.capabilities).toContain('sync:index');
     expect(source.capabilities).not.toContain('sync:games');
   });
+
+  test('declares browse filters and a matching sidebar', () => {
+    const [source] = manifest.contributes.sources;
+    expect(source.capabilities).toContain('browse:filters');
+    expect(source.sidebar?.map((group) => group.id)).toEqual(['text', 'engine', 'sort']);
+    expect(source.sidebar?.[1]).toMatchObject({ type: 'multi', dynamic: true });
+  });
 });

@@ -27,6 +27,8 @@ The message shapes come from the Light Launcher plugin SDK (`@light-launcher/plu
 | `source.resolveFiles` | `{ source, game }` | `{ files }` |
 | `source.prepareDownload` | `{ source, file, game }` | `{ url, headers, filename?, size?, root?, subfolder?, install?, installSubfolder?, deleteArchive? }` |
 | `source.checkUpdate` | `{ source, game }` | `{ update }`, or null when nothing is newer |
+| `source.browse` | `{ source, query?, filters?, sort?, order?, cursor?, limit }` | `{ games, nextCursor?, total? }` for the Library sidebar |
+| `source.listFilters` | `{ source, group, query?, limit }` | `{ options }` for a dynamic sidebar group |
 | `source.sync` | `{ source }` | `{ count, syncedAt, running }` after the thread index is rebuilt |
 | `shutdown` | none | null. The plugin then exits. |
 
@@ -37,7 +39,7 @@ The message shapes come from the Light Launcher plugin SDK (`@light-launcher/plu
 | `hostVersion` | string | Launcher version |
 | `apiVersion` | string | Must be `"1"` |
 | `platform` | string | `windows`, `linux`, `mac`, `android` or `unknown` |
-| `grantedPermissions` | object | What the user allowed. `browser` decides where browser windows come from |
+| `grantedPermissions` | object | What the user allowed. `browser` allows the launcher's browser window |
 | `dataDir` | string | Private folder. The thread index and the profile overlay live here |
 
 The launcher never sends the cookie in `initialize`. See [Sign in](install.md#sign-in).
@@ -50,7 +52,7 @@ The launcher never sends the cookie in `initialize`. See [Sign in](install.md#si
 | `secrets.set` | After `source.setCredential` works | Saves the cookie |
 | `secrets.delete` | After `source.clearCredential` | Removes the cookie |
 | `settings.get` | In `initialize`, and for each download | Reads the [settings](settings.md). Defaults apply if the host cannot answer |
-| `browser.assist` | `source.prepareDownload` when a file host needs a person, and the embedded route is on | Opens a window where you do the step, then catches the file link. See [Browser assist](#browser-assist) |
+| `browser.assist` | `source.prepareDownload` when a file host needs a person, and browser assist is on | Opens a window where you do the step, then catches the file link. See [Browser assist](#browser-assist) |
 
 > [!NOTE]
 > The plugin fetches forum pages itself. It does not use `http.request`.
@@ -69,19 +71,12 @@ The launcher never sends the cookie in `initialize`. See [Sign in](install.md#si
 Some file-host pages need a person: a timer, a login, a captcha or a download button.
 The plugin does not click or fill these pages. It asks the launcher to show the page, and
 you do the step in the window. The launcher observes the download and returns the caught
-link. The plugin sends a short message for the window, so you know what to do there.
+link. Progress messages from the plugin appear on the download row.
 
 | Situation | Browser used |
 |---|---|
-| `useExternalChrome` is off (default) | The launcher's embedded window through `browser.assist` |
-| `useExternalChrome` is on | The plugin's own Chrome, Edge or Chromium window over CDP (the old route) |
+| `browserAssistEnabled` is on (default) | The launcher's embedded window through `browser.assist` |
 | `browserAssistEnabled` is off | No window. The download fails with a clear message |
-
-> [!NOTE]
-> The old external route needs Google Chrome, Microsoft Edge or Chromium installed. Set
-> `browserPath` to choose the program; an empty value uses the usual install locations.
-> A capture from the embedded window returns no cookie headers. The old route returns the
-> cookies the download needs.
 
 ## Download hints
 

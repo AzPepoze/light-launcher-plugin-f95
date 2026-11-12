@@ -9,7 +9,6 @@
 | The plugin binary for your system | Runs the plugin |
 | `plugin.json` | Tells the launcher what the plugin is and what it may access |
 | An F95 Zone account | Needed for threads that require a login |
-| Chrome, Edge or Chromium | Only for the old external browser route (`useExternalChrome`), where the plugin opens its own window to catch a download link |
 
 ## Folder layout
 
