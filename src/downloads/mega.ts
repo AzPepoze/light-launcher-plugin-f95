@@ -28,6 +28,29 @@ export interface MegaFile extends MegaCipherKey {
   size: number;
 }
 
+/** The encrypted-download field of source.prepareDownload. The host decrypts the finished file. */
+export interface MegaDecryptField {
+  algorithm: 'aes-128-ctr';
+  /** AES-128 key, base64 */
+  key: string;
+  /** 8-byte CTR nonce, base64 */
+  nonce: string;
+}
+
+/**
+ * Serializes a derived key for the host result. It is returned with one download and
+ * never logged, so a failed download cannot leak the key.
+ */
+export function megaDecryptField(key: MegaCipherKey): MegaDecryptField {
+  if (key.aesKey.length !== 16) throw new Error('MEGA AES key must be 16 bytes');
+  if (key.nonce.length !== 8) throw new Error('MEGA nonce must be 8 bytes');
+  return {
+    algorithm: 'aes-128-ctr',
+    key: key.aesKey.toString('base64'),
+    nonce: key.nonce.toString('base64'),
+  };
+}
+
 /** Parses `mega.nz/file/<handle>#<key>` and the older `mega.nz/#!<handle>!<key>` form. */
 export function parseMegaLink(url: string): MegaLink | null {
   let parsed: URL;

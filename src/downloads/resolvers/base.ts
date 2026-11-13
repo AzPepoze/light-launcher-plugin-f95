@@ -14,7 +14,7 @@ export interface ResolvedDownload {
   headers?: Record<string, string>;
   filename?: string | null;
   size?: number | null;
-  /** MEGA content is encrypted; the download is decrypted when it finishes */
+  /** MEGA content is encrypted; the host decrypts the finished file with this key and nonce */
   decrypt?: MegaCipherKey | null;
   /** the page needs a person: a timer, login, captcha or button */
   needsHuman?: boolean;

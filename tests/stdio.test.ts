@@ -108,7 +108,7 @@ describe('stdio', () => {
           dataDir,
         },
       );
-      expect(init.pluginVersion).toBe('1.0.1');
+      expect(init.pluginVersion).toBe('1.0.2');
       expect(init.capabilities.f95.browse).toBe(true);
       expect(init.capabilities.f95['browse:filters']).toBe(true);
 

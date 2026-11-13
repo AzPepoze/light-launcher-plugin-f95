@@ -9,6 +9,7 @@ import {
   decryptName,
   deriveKeys,
   encodeCipherKey,
+  megaDecryptField,
   parseMegaLink,
 } from '../src/downloads/mega';
 
@@ -72,6 +73,23 @@ describe('MEGA keys', () => {
     expect(restored?.aesKey.equals(key.aesKey)).toBe(true);
     expect(restored?.nonce.equals(key.nonce)).toBe(true);
     expect(decodeCipherKey(null)).toBeNull();
+  });
+
+  test('the download field is AES-128-CTR with base64 key and nonce', () => {
+    const key = deriveKeys(KEY_TEXT);
+    expect(megaDecryptField(key)).toEqual({
+      algorithm: 'aes-128-ctr',
+      key: key.aesKey.toString('base64'),
+      nonce: key.nonce.toString('base64'),
+    });
+    expect(Buffer.from(megaDecryptField(key).key, 'base64').length).toBe(16);
+    expect(Buffer.from(megaDecryptField(key).nonce, 'base64').length).toBe(8);
+  });
+
+  test('a key or nonce of the wrong size is refused instead of sent to the host', () => {
+    const key = deriveKeys(KEY_TEXT);
+    expect(() => megaDecryptField({ aesKey: Buffer.alloc(15), nonce: key.nonce })).toThrow('16 bytes');
+    expect(() => megaDecryptField({ aesKey: key.aesKey, nonce: Buffer.alloc(7) })).toThrow('8 bytes');
   });
 });
 

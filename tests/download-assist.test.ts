@@ -4,7 +4,7 @@ import type { FileCandidate, GameRef } from '@light-launcher/plugin-sdk/types';
 import { ErrorCode, RpcFailure } from '@light-launcher/plugin-sdk/types';
 import { deriveKeys } from '../src/downloads/mega';
 import { createF95Provider } from '../src/providers/f95';
-import { parseProfile } from '../src/providers/xenforo';
+import { parseProfile, type PrepareDownloadWithDecrypt } from '../src/providers/xenforo';
 import profileJson from '../profiles/f95zone.json';
 import { settingsFrom } from '../src/settings';
 import { fakeServices, type Responder } from './fakes';
@@ -47,6 +47,7 @@ describe('prepareDownload with file-host resolvers', () => {
     expect(prepared.root).toBe('downloads');
     expect(prepared.subfolder).toBe('My Game');
     expect(prepared.headers['User-Agent']).toBeTruthy();
+    expect(prepared).not.toHaveProperty('decrypt');
     expect(fake.browserCalls).toEqual([]);
   });
 
@@ -198,26 +199,57 @@ describe('prepareDownload selects every supported file host resolver', () => {
     expect(fake.browserCalls).toEqual([]);
   });
 
-  test('MEGA is selected, but reports the missing key field instead of saving a corrupt file', async () => {
+  test('MEGA answers with the file name, size and the AES key the host needs', async () => {
     const fileKey = Buffer.alloc(32, 7).toString('base64url');
-    const { aesKey } = deriveKeys(fileKey);
+    const { aesKey, nonce } = deriveKeys(fileKey);
     const plain = Buffer.from('MEGA{"n":"game.zip"}');
     const padded = Buffer.concat([plain, Buffer.alloc((16 - (plain.length % 16)) % 16)]);
     const cipher = crypto.createCipheriv('aes-128-cbc', aesKey, Buffer.alloc(16));
     cipher.setAutoPadding(false);
     const attributes = Buffer.concat([cipher.update(padded), cipher.final()]).toString('base64url');
     const fake = fakeServices({
-      respond: () => ({ text: JSON.stringify([{ g: 'https://gfs1.userstorage.mega.co.nz/dl', s: 3, at: attributes }]) }),
+      respond: () => ({
+        text: JSON.stringify([{ g: 'https://gfs1.userstorage.mega.co.nz/dl/abc', s: 314159, at: attributes }]),
+      }),
+    });
+    const provider = createF95Provider(fake.services, { profile });
+
+    const prepared = await provider.prepareDownload(
+      file({ url: `https://mega.nz/file/abc#${fileKey}`, host: 'mega.nz' }),
+      game,
+      {},
+    ) as PrepareDownloadWithDecrypt;
+
+    expect(prepared.url).toBe('https://gfs1.userstorage.mega.co.nz/dl/abc');
+    expect(prepared.filename).toBe('game.zip');
+    expect(prepared.size).toBe(314159);
+    expect(prepared.root).toBe('downloads');
+    expect(prepared.subfolder).toBe('My Game');
+    expect(prepared.decrypt).toEqual({
+      algorithm: 'aes-128-ctr',
+      key: aesKey.toString('base64'),
+      nonce: nonce.toString('base64'),
+    });
+    expect(Buffer.from(prepared.decrypt!.key, 'base64').length).toBe(16);
+    expect(Buffer.from(prepared.decrypt!.nonce, 'base64').length).toBe(8);
+    expect(fake.browserCalls).toEqual([]);
+    expect(fake.logs.join('\n')).not.toContain(prepared.decrypt!.key);
+  });
+
+  test('a MEGA key that is not 32 bytes still errors before a download starts', async () => {
+    const shortKey = Buffer.alloc(16, 1).toString('base64url');
+    const fake = fakeServices({
+      respond: () => ({ text: JSON.stringify([{ g: 'https://gfs1.userstorage.mega.co.nz/dl', s: 3, at: '' }]) }),
     });
     const provider = createF95Provider(fake.services, { profile });
 
     await expect(provider.prepareDownload(
-      file({ url: `https://mega.nz/file/abc#${fileKey}`, host: 'mega.nz' }),
+      file({ url: `https://mega.nz/file/abc#${shortKey}`, host: 'mega.nz' }),
       game,
       {},
     )).rejects.toMatchObject({
-      code: ErrorCode.InternalError,
-      message: expect.stringContaining('no field for it'),
+      code: ErrorCode.RemoteError,
+      message: expect.stringContaining('32 bytes'),
     });
   });
 

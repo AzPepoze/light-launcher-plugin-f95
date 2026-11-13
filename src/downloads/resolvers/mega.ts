@@ -18,6 +18,7 @@ export class MegaHost extends FileHostResolver {
     return {
       url: file.url,
       filename: file.filename,
+      size: file.size,
       decrypt: { aesKey: file.aesKey, nonce: file.nonce },
     };
   }

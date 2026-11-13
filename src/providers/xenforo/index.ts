@@ -8,6 +8,7 @@ import type { CallHooks, SourceProvider } from '@light-launcher/plugin-sdk/runti
 import { ErrorCode, RpcFailure, type PrepareDownloadResult } from '@light-launcher/plugin-sdk/types';
 import { downloadHints } from '@light-launcher/plugin-sdk';
 import { withBrowserHeaders } from '../../downloads/hosts';
+import { megaDecryptField, type MegaDecryptField } from '../../downloads/mega';
 import { applyFilePreferences, type FilePreferences } from '../../downloads/preferences';
 import { findResolver, resolveDownload } from '../../downloads/resolve';
 import type { HostServices } from '../../host';
@@ -24,6 +25,12 @@ import {
 export * from './profile';
 export * from './parse';
 export * from './browse';
+
+/**
+ * source.prepareDownload answer with the encrypted-download field.
+ * It is declared here until the SDK's PrepareDownloadResult carries `decrypt` itself.
+ */
+export type PrepareDownloadWithDecrypt = PrepareDownloadResult & { decrypt?: MegaDecryptField };
 
 export interface XenForoProviderOptions {
   /** defaults to the profile id */
@@ -406,7 +413,11 @@ export function createXenForoProvider(
     };
   }
 
-  async function prepareDownload(file: FileCandidate, game: GameRef, hooks: CallHooks = {}): Promise<PrepareDownloadResult> {
+  async function prepareDownload(
+    file: FileCandidate,
+    game: GameRef,
+    hooks: CallHooks = {},
+  ): Promise<PrepareDownloadWithDecrypt> {
     const settings = await currentSettings();
     const hints = downloadHints(settings, game);
     if (isDownloadRedirect(file.url)) return captureRedirect(file, game, hooks, settings);
@@ -423,22 +434,16 @@ export function createXenForoProvider(
           `${label}: could not resolve the ${file.host ?? 'file host'} link: ${message}`,
         );
       }
-      if (resolved.decrypt) {
-        throw new RpcFailure(
-          ErrorCode.InternalError,
-          `${label}: MEGA downloads need the file key, but source.prepareDownload has no field for it.`,
-        );
-      }
-      if (!resolved.needsHuman) {
-        return {
-          url: resolved.url,
-          headers: withBrowserHeaders(resolved.url, { ...file.headers, ...resolved.headers }),
-          filename: resolved.filename ?? file.filename ?? undefined,
-          size: resolved.size ?? file.size ?? undefined,
-          ...hints,
-        };
-      }
-      return captureRedirect(file, game, hooks, settings);
+      if (resolved.needsHuman) return captureRedirect(file, game, hooks, settings);
+      const prepared = {
+        url: resolved.url,
+        headers: withBrowserHeaders(resolved.url, { ...file.headers, ...resolved.headers }),
+        filename: resolved.filename ?? file.filename ?? undefined,
+        size: resolved.size ?? file.size ?? undefined,
+      };
+      if (!resolved.decrypt) return { ...prepared, ...hints };
+      // MEGA: the host decrypts the finished file with this key; the key is never logged.
+      return { ...prepared, decrypt: megaDecryptField(resolved.decrypt), ...hints };
     }
 
     // an unsupported mirror page is as likely to need a person as a supported one
