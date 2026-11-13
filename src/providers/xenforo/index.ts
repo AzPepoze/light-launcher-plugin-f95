@@ -447,7 +447,7 @@ export function createXenForoProvider(
     if (file.requiresAuth) {
       const cookie = await savedCookie();
       if (!cookie) {
-        throw new Error(`${label}: this download requires a stored session cookie (set the source cookie in settings)`);
+        throw new RpcFailure(ErrorCode.AuthRequired, `${label} needs a sign-in cookie for this download. Add it in the source settings.`);
       }
       return {
         url: file.url,

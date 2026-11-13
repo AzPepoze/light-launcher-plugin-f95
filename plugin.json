@@ -2,7 +2,7 @@
   "id": "f95",
   "name": "F95 Zone",
   "repository": "github:AzPepoze/light-launcher-plugin-f95",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "apiVersion": "1",
   "minHost": "2.0.0",
   "entry": {

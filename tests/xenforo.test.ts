@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import fs from 'node:fs';
-import type { GameRef } from '@light-launcher/plugin-sdk/types';
+import { ErrorCode, type GameRef } from '@light-launcher/plugin-sdk/types';
 import { isNewer, platformOf, platformsIn } from '@light-launcher/plugin-sdk/helpers';
 import {
   extractFileCandidates, parseAccountName, parseListing,
@@ -325,7 +325,10 @@ describe('provider wiring', () => {
     expect(prepared.headers).toEqual({ Cookie: 'session=abc', Referer: 'https://f95zone.to/threads/12345/' });
 
     const anonymous = makeProvider(() => ({})).provider;
-    await expect(anonymous.prepareDownload(attachment, gameRef(), {})).rejects.toThrow('requires a stored session cookie');
+    await expect(anonymous.prepareDownload(attachment, gameRef(), {})).rejects.toMatchObject({
+      code: ErrorCode.AuthRequired,
+      message: expect.stringContaining('needs a sign-in cookie'),
+    });
   });
 
   test('prepareDownload returns the file name, size and headers the browser captured', async () => {
