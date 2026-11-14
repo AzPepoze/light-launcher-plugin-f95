@@ -1,27 +1,14 @@
 import { describe, expect, test } from 'bun:test';
 import crypto from 'node:crypto';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
 import {
-  decodeCipherKey,
-  decryptMegaFile,
   decryptName,
   deriveKeys,
-  encodeCipherKey,
   megaDecryptField,
   parseMegaLink,
 } from '../src/downloads/mega';
 
 const FILE_KEY = Buffer.from(Array.from({ length: 32 }, (_, i) => i * 7 + 1));
 const KEY_TEXT = FILE_KEY.toString('base64url');
-
-function counterFor(nonce: Buffer, block: number): Buffer {
-  const counter = Buffer.alloc(16);
-  nonce.copy(counter, 0, 0, 8);
-  counter.writeBigUInt64BE(BigInt(block), 8);
-  return counter;
-}
 
 describe('MEGA links', () => {
   test('a file link splits into handle and key', () => {
@@ -67,14 +54,6 @@ describe('MEGA keys', () => {
     expect(decryptName(attributes, aesKey)).toBe('Toybox 0.1.4.7z');
   });
 
-  test('a stored key comes back unchanged', () => {
-    const key = deriveKeys(KEY_TEXT);
-    const restored = decodeCipherKey(encodeCipherKey(key));
-    expect(restored?.aesKey.equals(key.aesKey)).toBe(true);
-    expect(restored?.nonce.equals(key.nonce)).toBe(true);
-    expect(decodeCipherKey(null)).toBeNull();
-  });
-
   test('the download field is AES-128-CTR with base64 key and nonce', () => {
     const key = deriveKeys(KEY_TEXT);
     expect(megaDecryptField(key)).toEqual({
@@ -90,24 +69,5 @@ describe('MEGA keys', () => {
     const key = deriveKeys(KEY_TEXT);
     expect(() => megaDecryptField({ aesKey: Buffer.alloc(15), nonce: key.nonce })).toThrow('16 bytes');
     expect(() => megaDecryptField({ aesKey: key.aesKey, nonce: Buffer.alloc(7) })).toThrow('8 bytes');
-  });
-});
-
-describe('MEGA file decryption', () => {
-  test('an encrypted download is restored to the original bytes', async () => {
-    const { aesKey, nonce } = deriveKeys(KEY_TEXT);
-    const original = crypto.randomBytes(100_003);
-    const cipher = crypto.createCipheriv('aes-128-ctr', aesKey, counterFor(nonce, 0));
-    const encrypted = Buffer.concat([cipher.update(original), cipher.final()]);
-
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mega-test-'));
-    const file = path.join(dir, 'game.part');
-    fs.writeFileSync(file, encrypted);
-    try {
-      await decryptMegaFile(file, { aesKey, nonce });
-      expect(fs.readFileSync(file).equals(original)).toBe(true);
-    } finally {
-      fs.rmSync(dir, { recursive: true, force: true });
-    }
   });
 });

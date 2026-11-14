@@ -1,7 +1,4 @@
 import crypto from 'node:crypto';
-import fs from 'node:fs';
-import fsp from 'node:fs/promises';
-import { pipeline } from 'node:stream/promises';
 import { DEFAULT_USER_AGENT, type HttpClient } from '@light-launcher/plugin-sdk/helpers';
 
 const API_URL = 'https://g.api.mega.co.nz/cs';
@@ -124,35 +121,4 @@ function megaErrorMessage(code: number): string {
   if (code === -9) return 'MEGA says this file was removed or is not available';
   if (code === -3) return 'MEGA is busy, try again in a moment';
   return `MEGA API error ${code}`;
-}
-
-/** A CTR stream that starts at byte `offset`; the file is always decrypted from byte 0. */
-function megaCipher(aesKey: Buffer, nonce: Buffer, offset: number): crypto.Cipheriv {
-  const counter = Buffer.alloc(16);
-  nonce.copy(counter, 0, 0, 8);
-  counter.writeBigUInt64BE(BigInt(Math.floor(offset / 16)), 8);
-  return crypto.createCipheriv('aes-128-ctr', aesKey, counter);
-}
-
-/** Text form stored with the download row, so a restart can still decrypt. */
-export function encodeCipherKey(key: MegaCipherKey): string {
-  return JSON.stringify({ aes: key.aesKey.toString('base64'), nonce: key.nonce.toString('base64') });
-}
-
-export function decodeCipherKey(text: string | null): MegaCipherKey | null {
-  if (!text) return null;
-  const parsed = JSON.parse(text) as { aes?: string; nonce?: string };
-  if (!parsed.aes || !parsed.nonce) return null;
-  return { aesKey: Buffer.from(parsed.aes, 'base64'), nonce: Buffer.from(parsed.nonce, 'base64') };
-}
-
-/** Decrypts a finished MEGA download in place, streaming so large files stay out of memory. */
-export async function decryptMegaFile(file: string, key: MegaCipherKey): Promise<void> {
-  const tmp = `${file}.dec`;
-  await pipeline(
-    fs.createReadStream(file),
-    megaCipher(key.aesKey, key.nonce, 0),
-    fs.createWriteStream(tmp),
-  );
-  await fsp.rename(tmp, file);
 }
