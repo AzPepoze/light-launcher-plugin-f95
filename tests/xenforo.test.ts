@@ -206,7 +206,7 @@ describe('platform sections', () => {
 
 describe('parseListing and account', () => {
   test('parses three thread rows', () => {
-    const games = parseListing(listingHtml, profile, 'https://f95zone.to/forums/adult-games.1/');
+    const games = parseListing(listingHtml, profile, 'https://f95zone.to/forums/games.2/');
     expect(games.length).toBe(3);
     expect(games[0]).toMatchObject({
       sourceId: '12345',
@@ -248,8 +248,8 @@ describe('provider wiring', () => {
       kind: 'game', id: '12345', url: 'https://f95zone.to/threads/12345/',
     });
     expect(provider.parseRef('https://www.f95zone.to/threads/slug.999/')?.id).toBe('999');
-    expect(provider.parseRef('https://f95zone.to/forums/adult-games.1/page-2')).toEqual({
-      kind: 'listing', id: '/forums/adult-games.1/page-2', url: 'https://f95zone.to/forums/adult-games.1/page-2',
+    expect(provider.parseRef('https://f95zone.to/forums/games.2/page-2')).toEqual({
+      kind: 'listing', id: '/forums/games.2/page-2', url: 'https://f95zone.to/forums/games.2/page-2',
     });
     expect(provider.parseRef('https://itch.io/game/foo')).toBeNull();
   });
@@ -304,7 +304,7 @@ describe('provider wiring', () => {
     const { calls, provider } = makeProvider(() => ({ text: listingHtml }));
     const games = await provider.fetchList({ page: 3 });
     expect(games.length).toBe(3);
-    expect(calls[0].url).toBe('https://f95zone.to/forums/adult-games.1/?page=3');
+    expect(calls[0].url).toBe('https://f95zone.to/forums/games.2/?page=3');
   });
 
   test('resolveFiles parses once and reuses the cache', async () => {

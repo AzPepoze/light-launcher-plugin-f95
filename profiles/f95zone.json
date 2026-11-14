@@ -3,7 +3,7 @@
   "label": "F95 Zone",
   "baseUrl": "https://f95zone.to",
   "engine": "xenforo",
-  "profileVersion": 1,
+  "profileVersion": 2,
   "auth": {
     "checkPath": "/account",
     "loginPath": "/login",
@@ -63,10 +63,10 @@
   },
   "attachmentHosts": ["attachments.f95zone.to"],
   "listing": {
-    "path": "/forums/adult-games.1/",
-    "item": "div.structItem--thread",
-    "title": "a.structItem-title",
-    "link": "a.structItem-title",
+    "path": "/forums/games.2/",
+    "item": ".js-threadList .structItem--thread",
+    "title": ".structItem-title a[href*=\"/threads/\"]",
+    "link": ".structItem-title a[href*=\"/threads/\"]",
     "cover": "img",
     "latest": ".structItem-cell--latest time[datetime]",
     "pageParam": "page"

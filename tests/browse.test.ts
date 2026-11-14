@@ -41,7 +41,7 @@ describe('source.browse', () => {
     expect(page.total).toBeUndefined();
     expect(page.nextCursor).toBeTruthy();
     expect(fake.calls[0]?.url).toBe(
-      'https://f95zone.to/forums/adult-games.1/?order=last_post_date&direction=desc',
+      'https://f95zone.to/forums/games.2/?order=last_post_date&direction=desc',
     );
   });
 
@@ -49,7 +49,7 @@ describe('source.browse', () => {
     const { fake, provider: source } = provider();
     await source.browse!({ source: 'f95', sort: 'title', order: 'asc', limit: 5 }, {});
     expect(fake.calls[0]?.url).toBe(
-      'https://f95zone.to/forums/adult-games.1/?order=title&direction=asc',
+      'https://f95zone.to/forums/games.2/?order=title&direction=asc',
     );
   });
 

@@ -18,6 +18,12 @@ describe('loadProfile', () => {
     expect(loadProfile(profileJson, missing).selectors).toEqual(profileJson.selectors);
   });
 
+  test('points the listing at the current games forum', () => {
+    const profile = loadProfile(profileJson, path.join(os.tmpdir(), 'no-such-dir', 'f95zone.local.json'));
+    expect(profile.listing.path).toBe('/forums/games.2/');
+    expect(profile.listing.link).toBe('.structItem-title a[href*="/threads/"]');
+  });
+
   test('merges the overlay over the embedded profile', () => {
     const file = overlayFile({ selectors: { title: '.fixed-title' }, listing: { path: '/sam/' } });
     const profile = loadProfile(profileJson, file);
