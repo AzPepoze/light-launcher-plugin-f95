@@ -1,13 +1,19 @@
-import fs from 'node:fs';
 import path from 'node:path';
 import {
+  createLogger,
   sourceHandlers,
   type PluginContext,
   type PluginHandlers,
   type PluginNotificationHandlers,
   type SourceProvider,
 } from '@light-launcher/plugin-sdk/runtime';
-import { HttpClient, hostTransport } from '@light-launcher/plugin-sdk/helpers';
+import {
+  HttpClient,
+  hostTransport,
+  readSettings,
+  spacedTransport,
+  writeDump,
+} from '@light-launcher/plugin-sdk/helpers';
 import { ErrorCode, RpcFailure, type InitializeParams } from '@light-launcher/plugin-sdk/types';
 import manifest from '../plugin.json';
 import profileJson from '../profiles/f95zone.json';
@@ -15,18 +21,18 @@ import { BrowserEvents, createBrowserAssist, type BrowserAssist } from './browse
 import { fileSitemapCache } from './cache';
 import { secretCredentialStore } from './credential';
 import type { HostServices, LogFn, LogLevel } from './host';
-import { createLogger } from './log';
 import { createF95Provider } from './providers/f95';
 import { loadProfile } from './providers/xenforo';
 import { settingsFrom, type PluginSettings } from './settings';
-import { loggedTransport, spacedTransport } from './transport';
+import { loggedTransport } from './transport';
 
 const API_VERSION = '1';
-const SETTINGS_TIMEOUT_MS = 5_000;
 /** Largest response the plugin accepts. The sitemap call raises its own limit. */
 const MAX_BODY_BYTES = 12 * 1024 * 1024;
 /** Selector fixes go here, in the plugin's data directory, so they need no rebuild. */
 const PROFILE_OVERLAY_PATH = ['profiles', 'f95zone.local.json'] as const;
+const SETTINGS_DEFAULTS = settingsFrom({});
+const LEVEL_RANK: Record<LogLevel, number> = { debug: 0, info: 1, warn: 2, error: 3 };
 
 interface RunState {
   services: HostServices;
@@ -37,22 +43,24 @@ function logLevelFor(settings: PluginSettings): LogLevel {
   return settings.verboseLogging ? 'debug' : 'info';
 }
 
-/** Host settings are optional: when the host cannot answer, the defaults apply. */
-async function readSettings(ctx: PluginContext, log: LogFn): Promise<PluginSettings> {
-  try {
-    const { settings } = await ctx.host.call('settings.get', {}, { timeoutMs: SETTINGS_TIMEOUT_MS });
-    return settingsFrom(settings);
-  } catch (err) {
-    log('warn', 'settings.get failed, using defaults', err instanceof Error ? err.message : err);
-    return settingsFrom({});
-  }
+function loadSettings(ctx: PluginContext): Promise<PluginSettings> {
+  return readSettings(ctx.host, settingsFrom, SETTINGS_DEFAULTS);
 }
 
-function dumpInto(dir: string | null): HostServices['dump'] {
-  return (name, body) => {
-    if (!dir) return;
-    fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(path.join(dir, `${name.replace(/[^\w.-]+/g, '_')}.html`), body);
+function formatExtra(extra: unknown): string {
+  if (extra === undefined) return '';
+  if (extra instanceof Error) return ` ${extra.message}`;
+  if (typeof extra === 'string') return ` ${extra}`;
+  return ` ${JSON.stringify(extra)}`;
+}
+
+/** The SDK logger writes every level, so verbose logging decides whether debug lines pass. */
+function createLog(settings: PluginSettings): LogFn {
+  const logger = createLogger(manifest.id);
+  const minRank = LEVEL_RANK[logLevelFor(settings)];
+  return (level, message, extra) => {
+    if (LEVEL_RANK[level] < minRank) return;
+    logger[level](`${message}${formatExtra(extra)}`);
   };
 }
 
@@ -67,14 +75,19 @@ interface ServicesInput {
 
 function buildServices(input: ServicesInput): HostServices {
   const { dataDir, settings, log, ctx } = input;
-  const transport = spacedTransport(loggedTransport(hostTransport(ctx.host), log), settings.requestDelayMs);
-  const base = {
+  const transport = spacedTransport(loggedTransport(hostTransport(ctx.host), log), {
+    minDelayMs: settings.requestDelayMs,
+  });
+  const base: Omit<HostServices, 'browser'> = {
     http: new HttpClient(transport, {
       defaultHeaders: { 'User-Agent': settings.userAgent },
       maxBodyBytes: MAX_BODY_BYTES,
     }),
+    secrets: ctx.host.secrets,
+    storage: ctx.host.storage,
+    settings: () => loadSettings(ctx),
     credential: secretCredentialStore(ctx.host.secrets),
-    dump: dumpInto(settings.dumpDir),
+    dump: (name, body) => writeDump(settings.dumpDir ?? '', name, body),
     log,
     sitemapCache: fileSitemapCache(dataDir),
   };
@@ -82,7 +95,7 @@ function buildServices(input: ServicesInput): HostServices {
     hostGranted: input.hostGrantedBrowser,
     host: ctx.host,
     events: input.events,
-    getEnabled: async () => (await readSettings(ctx, log)).browserAssistEnabled,
+    getEnabled: async () => (await loadSettings(ctx)).browserAssistEnabled,
   });
   return { ...base, browser };
 }
@@ -92,8 +105,8 @@ async function startPlugin(params: InitializeParams, ctx: PluginContext, events:
     throw new RpcFailure(ErrorCode.InvalidParams, `this plugin speaks apiVersion ${API_VERSION}`);
   }
   // settings are read first, so the logger that the rest of the run uses can honour them
-  const settings = await readSettings(ctx, createLogger(manifest.id));
-  const log = createLogger(manifest.id, { minLevel: logLevelFor(settings) });
+  const settings = await loadSettings(ctx);
+  const log = createLog(settings);
   const services = buildServices({
     dataDir: params.dataDir,
     settings,
@@ -108,7 +121,7 @@ async function startPlugin(params: InitializeParams, ctx: PluginContext, events:
     userAgent: settings.userAgent,
     filePreferences: settings.filePreferences,
     updateCheckIntervalMs: settings.updateCheckIntervalMs,
-    getSettings: () => readSettings(ctx, log),
+    getSettings: () => loadSettings(ctx),
   });
   log('info', `ready (${manifest.name} ${manifest.version})`);
   return { services, provider };

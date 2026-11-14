@@ -2,6 +2,7 @@ import { HttpClient, type HttpTransport } from '@light-launcher/plugin-sdk/helpe
 import type { HttpRequestParams, HttpRequestResult } from '@light-launcher/plugin-sdk/types';
 import type { BrowserAssist, BrowserCapture } from '../src/browser-assist';
 import type { HostServices, SitemapRow } from '../src/host';
+import { settingsFrom } from '../src/settings';
 
 export type Responder = (url: string, params: HttpRequestParams) => Partial<HttpRequestResult>;
 
@@ -20,6 +21,11 @@ export interface FakeServicesOptions {
   sitemap?: SitemapRow[];
 }
 
+export interface FakeDump {
+  name: string;
+  body: string;
+}
+
 export interface FakeServices {
   services: HostServices;
   calls: FakeHttpCall[];
@@ -28,12 +34,15 @@ export interface FakeServices {
   browserCalls: string[];
   /** the credential the plugin last stored, or the initial one */
   credential: () => string | null;
+  /** the raw pages the plugin asked to dump */
+  dumps: FakeDump[];
 }
 
 /** In-memory HostServices: no network, no disk, no database. */
 export function fakeServices(options: FakeServicesOptions = {}): FakeServices {
   const calls: FakeHttpCall[] = [];
   const logs: string[] = [];
+  const dumps: FakeDump[] = [];
   const sitemap = new Map<string, { syncedAt: string; rows: SitemapRow[] }>();
   if (options.sitemap) sitemap.set('f95', { syncedAt: new Date().toISOString(), rows: options.sitemap });
   let credential = options.credential ?? null;
@@ -64,13 +73,26 @@ export function fakeServices(options: FakeServicesOptions = {}): FakeServices {
   const services: HostServices = {
     browser,
     http: new HttpClient(transport),
+    secrets: {
+      get: async () => credential,
+      set: async (_key, value) => {
+        credential = value;
+      },
+      delete: async () => {
+        credential = null;
+      },
+    },
+    storage: { get: async () => null, set: async () => {} },
+    settings: async () => settingsFrom({}),
     credential: {
       get: async () => credential,
       set: async (value) => {
         credential = value;
       },
     },
-    dump: () => {},
+    dump: (name, body) => {
+      dumps.push({ name, body });
+    },
     log: (level, message) => {
       logs.push(`${level} ${message}`);
     },
@@ -84,5 +106,5 @@ export function fakeServices(options: FakeServicesOptions = {}): FakeServices {
     },
   };
 
-  return { services, calls, logs, browserCalls, credential: () => credential };
+  return { services, calls, logs, dumps, browserCalls, credential: () => credential };
 }

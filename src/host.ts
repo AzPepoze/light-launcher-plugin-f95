@@ -1,5 +1,7 @@
 import type { HttpClient } from '@light-launcher/plugin-sdk/helpers';
+import type { HostServices as SdkHostServices } from '@light-launcher/plugin-sdk/runtime';
 import type { BrowserAssist } from './browser-assist';
+import type { PluginSettings } from './settings';
 
 /** One row of the forum's public thread sitemap. */
 export interface SitemapRow {
@@ -8,8 +10,7 @@ export interface SitemapRow {
   title: string;
 }
 
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
-export type LogFn = (level: LogLevel, message: string, extra?: unknown) => void;
+export type { LogLevel } from '@light-launcher/plugin-sdk/runtime';
 
 /** Per-source login cookie. The host stores the secret; the plugin reads and replaces it. */
 export interface CredentialStore {
@@ -27,13 +28,12 @@ export interface SitemapCache {
   replace(source: string, rows: SitemapRow[]): void;
 }
 
-/** Everything a plugin receives from its host. The plugin never imports app modules. */
-export interface HostServices {
+/** Everything a plugin receives from its host, plus the services only this plugin uses. */
+export interface HostServices extends Omit<SdkHostServices<PluginSettings>, 'http'> {
   http: HttpClient;
   credential: CredentialStore;
   browser: BrowserAssist;
-  /** save a raw page when a parse fails; a no-op when dumps are off */
-  dump: (name: string, body: string) => void;
-  log: LogFn;
   sitemapCache: SitemapCache;
 }
+
+export type LogFn = HostServices['log'];
