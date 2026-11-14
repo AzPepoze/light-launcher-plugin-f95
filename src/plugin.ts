@@ -82,7 +82,6 @@ function buildServices(input: ServicesInput): HostServices {
     hostGranted: input.hostGrantedBrowser,
     host: ctx.host,
     events: input.events,
-    enabled: settings.browserAssistEnabled,
     getEnabled: async () => (await readSettings(ctx, log)).browserAssistEnabled,
   });
   return { ...base, browser };

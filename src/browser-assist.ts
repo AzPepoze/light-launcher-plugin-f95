@@ -109,8 +109,6 @@ export interface BrowserAssistInput {
   hostGranted: boolean;
   host: HostClient;
   events: BrowserEvents;
-  /** false refuses every capture; defaults to true */
-  enabled?: boolean;
   /** when set, the on/off setting is read again for every capture */
   getEnabled?: () => Promise<boolean>;
 }
@@ -120,6 +118,5 @@ export function createBrowserAssist(input: BrowserAssistInput): BrowserAssist {
   if (!input.hostGranted) return new DisabledBrowserAssist(NO_PERMISSION_MESSAGE);
   const host = new HostBrowserAssist(input.host, input.events);
   if (input.getEnabled) return new SwitchBrowserAssist(host, input.getEnabled);
-  if (input.enabled === false) return new DisabledBrowserAssist();
   return host;
 }

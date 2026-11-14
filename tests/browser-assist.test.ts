@@ -91,16 +91,6 @@ describe('createBrowserAssist', () => {
     await expect(assist.capture(PAGE)).rejects.toThrow('browser.assist timed out');
   });
 
-  test('refuses every capture when turned off', async () => {
-    const { host, calls } = fakeHost(async () => ({ capturedUrl: 'https://pixeldrain.com/u/abc' }));
-    const assist = createBrowserAssist({
-      hostGranted: true, host, events: new BrowserEvents(), enabled: false,
-    });
-
-    await expect(assist.capture(PAGE)).rejects.toThrow('turned off in the plugin settings');
-    expect(calls).toEqual([]);
-  });
-
   test('does not call the host when the browser permission was not granted', async () => {
     const events = new BrowserEvents();
     const { host, calls } = fakeHost(async () => ({ capturedUrl: 'https://example.com/x' }));
