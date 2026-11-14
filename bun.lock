@@ -6,7 +6,6 @@
       "name": "light-launcher-plugin-f95",
       "dependencies": {
         "@light-launcher/plugin-sdk": "file:../light-launcher-plugin-sdk",
-        "cheerio": "^1.2.0",
       },
       "devDependencies": {
         "@types/bun": "^1.4.4",
