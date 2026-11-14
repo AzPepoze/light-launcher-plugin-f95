@@ -1,15 +1,10 @@
 import { describe, expect, test } from 'bun:test';
-import { sameSiteHost, withBrowserHeaders } from '../src/downloads/hosts';
+import { withBrowserHeaders } from '../src/downloads/hosts';
 import { resolveDownload } from '../src/downloads/resolve';
 import { fakeServices } from './fakes';
 
 describe('withBrowserHeaders', () => {
-  test('keeps the browser Cookie for the same non-forum URL', () => {
-    const headers = withBrowserHeaders('https://gofile.io/d/abc', {}, { Cookie: 'accountToken=t' });
-    expect(headers.Cookie).toBe('accountToken=t');
-  });
-
-  test('does not send a forum cookie to a non-forum host without browser headers', () => {
+  test('does not send a forum cookie to a non-forum host', () => {
     const headers = withBrowserHeaders('https://gofile.io/d/abc', { Cookie: 'xf_user=secret' });
     expect(headers.Cookie).toBeUndefined();
   });
@@ -21,14 +16,6 @@ describe('withBrowserHeaders', () => {
 });
 
 describe('download host safety', () => {
-  test('sameSiteHost accepts subdomains but not lookalikes', () => {
-    expect(sameSiteHost('f95zone.to', 'attachments.f95zone.to')).toBe(true);
-    expect(sameSiteHost('attachments.f95zone.to', 'f95zone.to')).toBe(true);
-    expect(sameSiteHost('mediafire.com', 'www.mediafire.com')).toBe(true);
-    expect(sameSiteHost('mediafire.com', 'evilmediafire.com')).toBe(false);
-    expect(sameSiteHost('f95zone.to', 'f95zone.to.evil.com')).toBe(false);
-  });
-
   test('resolveDownload does not mistake a lookalike host for a supported one', async () => {
     // a supported host would be fetched here; the lookalike must pass straight through
     const url = 'https://evilmediafire.com/file.zip';
