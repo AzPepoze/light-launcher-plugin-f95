@@ -33,13 +33,25 @@ Notes are grouped from the Conventional Commit subjects between the previous tag
 
 ## Signing
 
-Signing is optional. The workflow reads an ed25519 key from the repository secret `PLUGIN_SIGNING_KEY`. `llp` has no sign command yet, so a release stays unsigned even when the secret is set.
+Signing is optional. The workflow reads an ed25519 private key from the repository secret
+`PLUGIN_SIGNING_KEY`. Create one with `bunx llp keygen --out keys`; it writes
+`keys/private.pem` (the private key) and `keys/trusted_keys` (the public key). Keep the
+private key secret.
 
 | Secret | Format |
 |---|---|
-| `PLUGIN_SIGNING_KEY` | An ed25519 private key in PEM form, such as the output of `openssl genpkey -algorithm ed25519 -out key.pem` |
+| `PLUGIN_SIGNING_KEY` | An ed25519 private key in PKCS8 PEM form, such as `keys/private.pem` |
 
-When the SDK gains signing, the package will get a `SIGNATURE` file: the base64 ed25519 signature of `SHA256SUMS`. Users then add the matching public key to `<base folder>/plugins/trusted_keys`. See [Plugins](https://github.com/AzPepoze/light-launcher/blob/main/docs/plugins.md#trusted-keys) in the launcher docs.
+When the secret is set, the workflow writes it to a temporary file and runs
+`bunx llp sign dist/<package>.llplugin --key <file>` before it writes `SHA256SUMS`. The
+package then gets a `SIGNATURE` file: the base64 ed25519 signature of `SHA256SUMS`. Users
+add the matching public key from `keys/trusted_keys` to `<base folder>/plugins/trusted_keys`.
+See [Signing packages](https://github.com/AzPepoze/light-launcher-plugin-sdk/blob/main/docs/signing.md)
+in the SDK docs and [Plugins](https://github.com/AzPepoze/light-launcher/blob/main/docs/plugins.md#trusted-keys)
+in the launcher docs.
+
+When `PLUGIN_SIGNING_KEY` is not set, the release stays unsigned and users need
+`--allow-unsigned` to install it.
 
 ## Check a download
 
@@ -76,7 +88,7 @@ light-launcher plugin remove f95
 light-launcher plugin install ./f95-<version>.llplugin --allow-unsigned
 ```
 
-The package is unsigned, so installs need `--allow-unsigned`. Removing without `--delete-data` keeps settings and the saved sign-in cookie. To go back to the previous version, run `light-launcher plugin rollback f95`.
+An unsigned package needs `--allow-unsigned` to install. Removing without `--delete-data` keeps settings and the saved sign-in cookie. To go back to the previous version, run `light-launcher plugin rollback f95`.
 
 ## Troubleshooting
 

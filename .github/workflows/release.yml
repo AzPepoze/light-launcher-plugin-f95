@@ -66,6 +66,19 @@ jobs:
       - name: Check the package name
         run: test -f "dist/${PLUGIN_ID}-${PLUGIN_VERSION}.llplugin"
 
+      - name: Sign the package
+        env:
+          PLUGIN_SIGNING_KEY: ${{ secrets.PLUGIN_SIGNING_KEY }}
+        run: |
+          if [[ -z "$PLUGIN_SIGNING_KEY" ]]; then
+            echo "PLUGIN_SIGNING_KEY is not set; the release stays unsigned."
+            exit 0
+          fi
+          key="$RUNNER_TEMP/plugin-signing-key.pem"
+          printf '%s\n' "$PLUGIN_SIGNING_KEY" > "$key"
+          chmod 600 "$key"
+          bunx llp sign "dist/${PLUGIN_ID}-${PLUGIN_VERSION}.llplugin" --key "$key"
+
       - name: Write SHA256SUMS
         run: |
           cd dist
@@ -76,16 +89,6 @@ jobs:
           fi
           sha256sum "${packages[0]}" > SHA256SUMS
           cat SHA256SUMS
-
-      - name: Sign the package
-        env:
-          PLUGIN_SIGNING_KEY: ${{ secrets.PLUGIN_SIGNING_KEY }}
-        run: |
-          if [[ -z "$PLUGIN_SIGNING_KEY" ]]; then
-            echo "PLUGIN_SIGNING_KEY is not set; the release stays unsigned."
-            exit 0
-          fi
-          echo "::notice::PLUGIN_SIGNING_KEY is set, but llp has no sign command yet; the release stays unsigned."
 
       - uses: actions/upload-artifact@v4
         with:
