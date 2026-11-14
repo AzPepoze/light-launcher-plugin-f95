@@ -306,6 +306,18 @@ describe('provider wiring', () => {
     expect(calls[0].url).toBe('https://f95zone.to/forums/games.2/?page=3');
   });
 
+  test('failed thread and listing parses dump the raw page', async () => {
+    const page = '<html><body>Just a moment...</body></html>';
+    const { provider, fake } = makeProvider(() => ({ text: page }));
+    const url = 'https://f95zone.to/threads/broken.99999/';
+    await provider.fetchGame({ kind: 'game', id: '99999', url });
+    await provider.fetchList({});
+    expect(fake.dumps).toEqual([
+      { name: 'thread-99999', body: page },
+      { name: 'listing', body: page },
+    ]);
+  });
+
   test('resolveFiles parses once and reuses the cache', async () => {
     const { calls, provider } = makeProvider(() => ({ text: threadHtml }));
     const game = gameRef({ sourceId: 'cache-test', updatedAt: '2026-03-15T16:30:00.000Z' });

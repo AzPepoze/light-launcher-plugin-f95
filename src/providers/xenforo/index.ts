@@ -139,6 +139,18 @@ export function createXenForoProvider(
 
   const urlFor = (pathOrUrl: string): string => new URL(pathOrUrl, `${base}/`).toString();
 
+  function parseThreadPage(html: string, url: string, id: string): GameDTO {
+    const dto = parseThread(html, profile, url);
+    if (!dto.title || !dto.descriptionHtml) services.dump(`thread-${id}`, html);
+    return dto;
+  }
+
+  function parseListingPage(html: string, url: string): GameDTO[] {
+    const games = parseListing(html, profile, url);
+    if (!games.length) services.dump('listing', html);
+    return games;
+  }
+
   async function inspectAccount(cookie: string): Promise<AuthState> {
     try {
       const checkUrl = urlFor(profile.auth.checkPath);
@@ -218,7 +230,7 @@ export function createXenForoProvider(
       res = await services.http.request(ref.url, { headers: await cookieHeaders() });
     }
     if (res.status >= 400) throw new Error(`${sourceId}: HTTP ${res.status} for ${ref.url}`);
-    const dto = parseThread(res.text, profile, ref.url);
+    const dto = parseThreadPage(res.text, ref.url, ref.id);
     // reuse this parse for the following resolveFiles() call
     remember(await memoryId(dto.sourceId), dto.updatedAt ?? null, extractFileCandidates(res.text, profile, dto.url));
     dtoCache.set(key, { dto, at: Date.now() });
@@ -235,7 +247,7 @@ export function createXenForoProvider(
     if (opts.page && opts.page > 1) target.searchParams.set(profile.listing.pageParam, String(opts.page));
     const res = await services.http.request(target.toString(), { headers: await cookieHeaders() });
     if (res.notModified || res.status >= 400) return [];
-    return parseListing(res.text, profile, target.toString());
+    return parseListingPage(res.text, target.toString());
   }
 
   async function browseIndex(plan: BrowsePlan, page: number, offset: number, limit: number): Promise<BrowseResult> {
@@ -266,7 +278,7 @@ export function createXenForoProvider(
       if (currentPage > 1) target.searchParams.set(profile.listing.pageParam, String(currentPage));
       const res = await services.http.request(target.toString(), { headers: await cookieHeaders() });
       if (res.notModified || res.status >= 400) break;
-      const batch = parseListing(res.text, profile, target.toString());
+      const batch = parseListingPage(res.text, target.toString());
       if (!batch.length || currentOffset >= batch.length) break;
 
       const available = batch.slice(currentOffset);
@@ -482,7 +494,7 @@ export function createXenForoProvider(
     const res = await services.http.request(game.url, { cacheKey: game.url, headers: await cookieHeaders() });
     if (res.notModified) return null;
     if (res.status >= 400) throw new Error(`${sourceId}: ${refusedMessage(res.status, game.url)}`);
-    const fresh = parseThread(res.text, profile, game.url);
+    const fresh = parseThreadPage(res.text, game.url, game.sourceId);
     const meta = parseThreadMeta(res.text, profile);
     const versionNewer = isNewer(fresh.version ?? null, game.version);
     const editedLater = dateAfter(meta.editedAt, game.updatedAt ?? null);
