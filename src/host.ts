@@ -18,11 +18,6 @@ export interface CredentialStore {
   set(value: string | null): Promise<void>;
 }
 
-/** A directory the plugin may write to for its own data (sitemap cache, profile overlay). */
-export interface PluginStorage {
-  dataDir: string;
-}
-
 /** Cached thread index used by "find a game by name" and the browse filters. */
 export interface SitemapCache {
   count(source: string): number;
@@ -40,6 +35,5 @@ export interface HostServices {
   /** save a raw page when a parse fails; a no-op when dumps are off */
   dump: (name: string, body: string) => void;
   log: LogFn;
-  storage: PluginStorage;
   sitemapCache: SitemapCache;
 }

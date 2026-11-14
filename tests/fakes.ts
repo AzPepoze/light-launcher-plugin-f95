@@ -1,5 +1,3 @@
-import os from 'node:os';
-import path from 'node:path';
 import { HttpClient, type HttpTransport } from '@light-launcher/plugin-sdk/helpers';
 import type { HttpRequestParams, HttpRequestResult } from '@light-launcher/plugin-sdk/types';
 import type { BrowserAssist, BrowserCapture } from '../src/browser-assist';
@@ -76,7 +74,6 @@ export function fakeServices(options: FakeServicesOptions = {}): FakeServices {
     log: (level, message) => {
       logs.push(`${level} ${message}`);
     },
-    storage: { dataDir: path.join(os.tmpdir(), 'f95-plugin-tests') },
     sitemapCache: {
       count: (source) => sitemap.get(source)?.rows.length ?? 0,
       syncedAt: (source) => sitemap.get(source)?.syncedAt ?? null,

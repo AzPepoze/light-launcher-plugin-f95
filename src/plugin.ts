@@ -76,7 +76,6 @@ function buildServices(input: ServicesInput): HostServices {
     credential: secretCredentialStore(ctx.host.secrets),
     dump: dumpInto(settings.dumpDir),
     log,
-    storage: { dataDir },
     sitemapCache: fileSitemapCache(dataDir),
   };
   const browser: BrowserAssist = createBrowserAssist({
