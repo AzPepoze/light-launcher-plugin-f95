@@ -3,7 +3,6 @@
   "label": "F95 Zone",
   "baseUrl": "https://f95zone.to",
   "engine": "xenforo",
-  "profileVersion": 2,
   "auth": {
     "checkPath": "/account",
     "loginPath": "/login",
@@ -19,10 +18,7 @@
     "titlePrefix": [".p-title-value .label"],
     "firstPost": ["article.message"],
     "postBody": [".message-body .bbWrapper"],
-    "postAuthor": [".message-attribution-main .username"],
     "postDate": [".message-attribution-main time[datetime]"],
-    "cover": ["img.bbImage"],
-    "screenshots": ["img.bbImage"],
     "threadTags": [".tagItem"]
   },
   "fields": {
@@ -65,11 +61,9 @@
   "listing": {
     "path": "/forums/games.2/",
     "item": ".js-threadList .structItem--thread",
-    "title": ".structItem-title a[href*=\"/threads/\"]",
     "link": ".structItem-title a[href*=\"/threads/\"]",
     "cover": "img",
     "latest": ".structItem-cell--latest time[datetime]",
     "pageParam": "page"
-  },
-  "rateLimitMs": 1200
+  }
 }

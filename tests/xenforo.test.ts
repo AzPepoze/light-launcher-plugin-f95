@@ -44,7 +44,6 @@ describe('xenforo profile', () => {
     expect(profile.engine).toBe('xenforo');
     expect(profile.baseUrl).toBe('https://f95zone.to');
     expect(profile.listing.pageParam).toBe('page');
-    expect(profile.rateLimitMs).toBe(1200);
   });
 });
 

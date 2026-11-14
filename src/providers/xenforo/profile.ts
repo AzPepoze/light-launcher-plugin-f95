@@ -7,7 +7,6 @@ export interface XenForoProfile {
   label: string;
   baseUrl: string;
   engine: 'xenforo';
-  profileVersion: number;
   auth: { checkPath: string; loginPath: string; userSelector: string | string[] };
   /** regex source; capture group 1 = thread id */
   threadUrl: string;
@@ -16,10 +15,7 @@ export interface XenForoProfile {
     titlePrefix: string | string[];
     firstPost: string | string[];
     postBody: string | string[];
-    postAuthor: string | string[];
     postDate: string | string[];
-    cover: string | string[];
-    screenshots: string | string[];
     threadTags: string | string[];
   };
   /** label -> regex with a (?<value>...) group, run on first-post text */
@@ -32,13 +28,11 @@ export interface XenForoProfile {
   listing: {
     path: string;
     item: string;
-    title: string;
     link: string;
     cover: string;
     latest: string;
     pageParam: string;
   };
-  rateLimitMs: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -152,7 +146,7 @@ export function parseProfile(raw: unknown, file: string): XenForoProfile {
     throw new Error(`invalid xenforo profile ${file}: attachmentHosts must be an array`);
   }
   if (!isPlain(raw.listing)) throw new Error(`invalid xenforo profile ${file}: missing "listing"`);
-  for (const key of ['path', 'item', 'title', 'link', 'cover', 'latest', 'pageParam']) {
+  for (const key of ['path', 'item', 'link', 'cover', 'latest', 'pageParam']) {
     requireString(raw.listing, key, `listing in ${file}`);
   }
   if (!isPlain(raw.auth)) throw new Error(`invalid xenforo profile ${file}: missing "auth"`);
