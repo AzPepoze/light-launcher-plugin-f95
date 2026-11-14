@@ -21,13 +21,16 @@ Builds use `bun build --compile`. The result is one program with no separate Bun
 |---|---|
 | `src/main.ts` | Entry point. Starts the stdio server |
 | `src/plugin.ts` | Method handlers and run state, passed to `servePlugin` |
-| `src/host.ts` | `HostServices`: what the launcher gives the plugin |
+| `src/host.ts` | `HostServices`: the SDK services plus the plugin's browser, cookie and index |
+| `src/settings.ts` | Reads, defaults and clamps the host settings |
+| `src/transport.ts` | Adds the per-request debug line; the logger comes from the SDK |
 | `src/credential.ts` | The cookie in the host secret store, cached in memory |
+| `src/cache.ts` | The thread index, stored as `sitemap.json` in the data folder |
 | `src/browser-assist.ts` | Opens the launcher's browser for download links |
 | `src/providers/xenforo/` | Forum engine: parses threads, listings and accounts |
 | `src/providers/f95/` | F95 Zone, built on the forum engine |
 | `profiles/f95zone.json` | Selectors and host rules for F95 Zone |
-| `src/downloads/resolvers/` | Turns file-host pages into direct links |
+| `src/downloads/` | Host preferences, resolvers and MEGA link handling |
 | `src/library/f95-index.ts` | Builds the thread index from the sitemap |
 
 ## SDK
@@ -56,8 +59,17 @@ Tests use in-memory fakes from `tests/fakes.ts`. They do not contact F95 Zone or
 | `profile.test.ts` | The profile overlay in the data folder |
 | `browser-assist.test.ts` | The launcher's browser route and its setting |
 | `browse.test.ts` | Browse, index search, filters and cursors |
+| `credential.test.ts` | The cookie read and write cache |
 | `download-assist.test.ts` | Resolver selection, success and browser-assist fallback |
-| `download-hints.test.ts` | Download hints and safe game folder names |
+| `download-hosts.test.ts` | Header scoping and look-alike host rejection |
+| `file-preferences.test.ts` | Preferred host order and platform filtering |
+| `http-routing.test.ts` | Requests go through the host, never `fetch` |
+| `mega.test.ts` | MEGA link parsing, key derivation and decrypt fields |
+| `resolvers.test.ts` | The file-host resolver table |
+| `settings.test.ts` | Schema defaults and settings parsing |
+| `transport.test.ts` | Request logging and spacing |
+| `update-interval.test.ts` | The minimum time between update checks |
+| `xenforo.test.ts` | Thread, listing and account parsing, plus provider wiring |
 
 To run the stdio test against the built binary:
 

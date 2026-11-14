@@ -61,7 +61,8 @@ The timer is kept in memory, so it starts again when the plugin restarts.
 | Browser identity | `userAgent` | Chrome 126 on Windows | The User-Agent header sent to F95 Zone. Advanced |
 
 > [!NOTE]
-> The launcher already waits 250 ms between requests to one site. The delay adds to that wait.
+> The launcher's own rate limit spaces requests to one site by 250 ms. This setting adds to
+> that wait; the plugin does not change the launcher's limit.
 
 ### Browser
 

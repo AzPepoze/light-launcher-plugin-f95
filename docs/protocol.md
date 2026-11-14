@@ -55,7 +55,8 @@ The launcher never sends the cookie in `initialize`. See [Sign in](install.md#si
 | `browser.assist` | `source.prepareDownload` when a file host needs a person, and browser assist is on | Opens a window where you do the step, then catches the file link. See [Browser assist](#browser-assist) |
 
 > [!NOTE]
-> The plugin fetches forum pages itself. It does not use `http.request`.
+> Every request goes through the launcher's `http.request`, using the SDK's `HttpClient`
+> and `hostTransport`. The launcher applies its network allow-list, rate limit and retries.
 
 ## Notifications
 
