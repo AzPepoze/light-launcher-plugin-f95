@@ -1,4 +1,4 @@
-import { DEFAULT_USER_AGENT } from '@light-launcher/plugin-sdk/helpers';
+import { DEFAULT_USER_AGENT, hostOf } from '@light-launcher/plugin-sdk/helpers';
 
 /** Per-host defaults the downloader should send before a provider's own headers. */
 const REFERERS: Record<string, string> = {
@@ -12,13 +12,7 @@ const REFERERS: Record<string, string> = {
   'buzzheavier.com': 'https://buzzheavier.com/',
 };
 
-export function hostOf(url: string): string {
-  try {
-    return new URL(url).hostname.toLowerCase();
-  } catch {
-    return '';
-  }
-}
+export { hostOf };
 
 /** Referer is mandatory on a few CDNs; sending the site root is always safe. */
 export function defaultHeaders(url: string): Record<string, string> {
