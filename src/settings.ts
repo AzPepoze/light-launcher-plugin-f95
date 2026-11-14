@@ -24,9 +24,6 @@ export interface PluginSettings extends DownloadSettings {
   browserAssistEnabled: boolean;
 }
 
-/** A settings object, or a reader called again for each download. */
-export type SettingsSource = PluginSettings | (() => PluginSettings | Promise<PluginSettings>);
-
 const HOUR_MS = 60 * 60 * 1000;
 const MAX_UPDATE_INTERVAL_HOURS = 720;
 const MAX_REQUEST_DELAY_MS = 10_000;
@@ -98,5 +95,3 @@ export function settingsFrom(raw: Record<string, unknown>): PluginSettings {
   };
 }
 
-/** The values the schema defaults describe. */
-export const DEFAULT_SETTINGS: Readonly<PluginSettings> = settingsFrom({});

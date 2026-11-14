@@ -12,7 +12,7 @@ import { megaDecryptField, type MegaDecryptField } from '../../downloads/mega';
 import { applyFilePreferences, type FilePreferences } from '../../downloads/preferences';
 import { findResolver, resolveDownload } from '../../downloads/resolve';
 import type { HostServices } from '../../host';
-import { settingsFrom, type PluginSettings, type SettingsSource } from '../../settings';
+import { settingsFrom, type PluginSettings } from '../../settings';
 import type { XenForoProfile } from './profile';
 import {
   extractFileCandidates, isDownloadRedirect, parseAccountName, parseListing, parseThread, parseThreadMeta,
@@ -44,8 +44,6 @@ export interface XenForoProviderOptions {
   updateCheckIntervalMs?: number;
   /** read on each call, so settings changes apply without a restart */
   getSettings?: () => Promise<PluginSettings>;
-  /** another way to pass the same values, as an object or a reader */
-  settings?: SettingsSource;
 }
 
 const MAX_CACHE = 50;
@@ -117,11 +115,7 @@ export function createXenForoProvider(
 
   /** Settings are read again for every call, so a change applies without a restart. */
   async function currentSettings(): Promise<PluginSettings> {
-    const loaded = options.getSettings
-      ? await options.getSettings()
-      : typeof options.settings === 'function'
-        ? await options.settings()
-        : options.settings;
+    const loaded = options.getSettings ? await options.getSettings() : null;
     return loaded ? { ...startupSettings, ...loaded } : startupSettings;
   }
 
