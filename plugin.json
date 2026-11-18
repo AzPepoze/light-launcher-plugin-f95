@@ -2,7 +2,7 @@
   "id": "f95",
   "name": "F95 Zone",
   "repository": "github:AzPepoze/light-launcher-plugin-f95",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "apiVersion": "1",
   "minHost": "2.0.0",
   "entry": {
@@ -14,6 +14,7 @@
       {
         "id": "f95",
         "label": "F95 Zone",
+        "cover": { "ratio": "16:9" },
         "capabilities": ["browse", "browse:filters", "auth", "updateCheck", "resolveFiles", "sync:index"],
         "sidebar": [
           { "type": "search", "id": "text", "placeholder": "Search F95 titles" },
